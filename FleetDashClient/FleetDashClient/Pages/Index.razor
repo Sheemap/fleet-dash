@@ -1,0 +1,46 @@
+@page "/"
+
+@using FleetDashClient.Models
+@using FleetDashClient.Services
+@inject AccountService AccountService
+<p>Log Directory: @logDirectory  <button>Change</button></p>
+
+@if (accounts == null)
+{
+	<p><em>Loading...</em></p>
+}
+else
+{
+	<div id="account-list">
+		<div class="account-status">Status</div>
+		<div class="account-name">Name</div>
+		<div class="account-remove-btn">Remove</div>
+		<hr style="height: 2px;"/>
+		@if (accounts.Length == 0)
+		{
+			<p><em>No accounts setup yet.</em></p>
+		}
+		else
+		{
+			@foreach (var account in accounts)
+			{
+				<AccountRow Account=account/>
+				<hr />
+			}
+		}
+	</div>
+	
+}
+
+<img id="eve-login-btn" src="/images/eve-sso-login-black-large.png"/>
+
+
+@code {
+	private Account[] accounts;
+	private string logDirectory = "C:\\Eve";
+
+	protected override async Task OnInitializedAsync()
+	{
+		accounts = await AccountService.GetAccountList();
+	}
+}
