@@ -2,7 +2,7 @@
 
 @using FleetDashClient.Models
 @using FleetDashClient.Services
-@inject AccountService AccountService
+@inject CharacterService _characterService
 <p>Log Directory: @logDirectory  <button>Change</button></p>
 
 @if (accounts == null)
@@ -41,6 +41,6 @@ else
 
 	protected override async Task OnInitializedAsync()
 	{
-		accounts = await AccountService.GetAccountList();
+		accounts = await _characterService.GetAccountList();
 	}
 }

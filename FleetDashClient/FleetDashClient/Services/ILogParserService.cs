@@ -10,6 +10,9 @@ namespace FleetDashClient.Services
 {
 	public interface ILogParserService
 	{
-		public event EventHandler<IncomingDamageEventArgs> RaiseDamageReceivedEvent;
+		public event EventHandler<IncomingDamageEventArgs> RaiseIncomingDamageEvent;
+		public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
+		void StartWatchingCharacter(string characterId, string overviewSettings);
+		void StopWatchingCharacter(string characterId);
 	}
 }

@@ -2,7 +2,7 @@ using FleetDashClient.Models;
 
 namespace FleetDashClient.Services
 {
-    public class AccountService
+    public class CharacterService : ICharacterService
     {
         public Task<Account[]> GetAccountList()
         {

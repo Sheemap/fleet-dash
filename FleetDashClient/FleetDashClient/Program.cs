@@ -11,7 +11,7 @@ builder.WebHost.UseElectron(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<AccountService>();
+builder.Services.AddSingleton<CharacterService>();
 
 
 var app = builder.Build();

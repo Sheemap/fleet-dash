@@ -6,24 +6,24 @@ using System.Threading.Tasks;
 
 namespace FleetDashClient.Models.Events
 {
-	public class IncomingDamageEventArgs : EventArgs
+	public class OutgoingDamageEventArgs : EventArgs
 	{
-		public IncomingDamageEventArgs(string characterId, int amount, string fromName, string fromTag, string fromShip, string weapon, string application)
+		public OutgoingDamageEventArgs(string characterId, int amount, string toName, string toTag, string toShip, string weapon, string application)
 		{
 			CharacterId = characterId;
 			Amount = amount;
-			FromName = fromName;
-			FromTag = fromTag;
-			FromShip = fromShip;
+			ToName = toName;
+			ToTag = toTag;
+			ToShip = toShip;
 			Weapon = weapon;
 			Application = application;
 		}
 		
 		public string CharacterId { get; }
 		public int Amount { get; }
-		public string FromName { get; }
-		public string FromTag { get; }
-		public string FromShip { get; }
+		public string ToName { get; }
+		public string ToTag { get; }
+		public string ToShip { get; }
 		public string Weapon { get; }
 		public string Application { get; }
 	}

@@ -8,13 +8,13 @@ namespace FleetDashClient.Models.Events
 {
     public class LogFileReadEventArgs : EventArgs
     {
-        public LogFileReadEventArgs(string characterID, byte[] content)
+        public LogFileReadEventArgs(string characterId, byte[] content)
         {
-            CharacterID = characterID;
+            CharacterId = characterId;
             Content = content;
         }
 
-        public string CharacterID { get; set; }
+        public string CharacterId { get; set; }
         public byte[] Content { get; set; }
     }
 }
