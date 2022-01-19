@@ -9,19 +9,19 @@ namespace FleetDashClient.Test.LogParserServiceTests;
 
 public class OutgoingDamageTests
 {
-    private readonly Mock<ILogReaderService> _logReaderMock;
-    private readonly ILogParserService _logParserService;
-    
     private const string SingleDamageOutgoingLine =
         "[ 2022.01.15 23:15:57 ] (combat) <color=0xff00ffff><b>14</b> <color=0x77ffffff><font size=10>to</font> <b><color=0xffffffff>Anonymous Eve Player[TAGE](Exequror)</b><font size=10><color=0x77ffffff> - Acolyte II - Smashes";
-    
+
+    private readonly ILogParserService _logParserService;
+    private readonly Mock<ILogReaderService> _logReaderMock;
+
     public OutgoingDamageTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamageNonRegisteredCharacter_ShouldNotEmitEvent()
     {
@@ -35,7 +35,7 @@ public class OutgoingDamageTests
 
         Assert.Empty(emittedEvents);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitOutgoingDamageEvent()
     {
@@ -50,7 +50,7 @@ public class OutgoingDamageTests
 
         Assert.Single(emittedEvents);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectAmount()
     {
@@ -65,7 +65,7 @@ public class OutgoingDamageTests
 
         Assert.Equal(14, emittedEvents[0].Amount);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectCharacterId()
     {
@@ -95,7 +95,7 @@ public class OutgoingDamageTests
 
         Assert.Equal("Exequror", emittedEvents[0].Ship);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectWeapon()
     {
@@ -110,7 +110,7 @@ public class OutgoingDamageTests
 
         Assert.Equal("Acolyte II", emittedEvents[0].Weapon);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectApplication()
     {
@@ -125,7 +125,7 @@ public class OutgoingDamageTests
 
         Assert.Equal("Smashes", emittedEvents[0].Application);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectName()
     {

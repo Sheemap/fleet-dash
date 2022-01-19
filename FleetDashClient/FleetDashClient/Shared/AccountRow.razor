@@ -1,66 +1,69 @@
-﻿@inherits ComponentBase
-@using FleetDashClient.Models
+﻿@using FleetDashClient.Models
+@inherits ComponentBase
 
 <div class="account-status">
-	<Tooltip Text="@tooltipText">
-		<img src="@statusImage" height="30" />
-	</Tooltip>
+    <Tooltip Text="@tooltipText">
+        <img src="@statusImage" height="30"/>
+    </Tooltip>
 </div>
 <div class="account-name">@Account.Name</div>
-<div class="account-remove-btn">@if (removeConfirming)
-	{
-		<button id="confirm-button" @onclick="@OnConfirmClick">Confirm</button>
-		<button id="cancel-button" @onclick="@OnCancelClick">Cancel</button>
-	}
-	else
-	{
-		<img id="remove-button" src="/images/close-circle.svg" height="30" @onclick="@OnRemoveAccount" />
-	}
-	</div>
+<div class="account-remove-btn">
+    @if (removeConfirming)
+    {
+        <button id="confirm-button" @onclick="@OnConfirmClick">Confirm</button>
+        <button id="cancel-button" @onclick="@OnCancelClick">Cancel</button>
+    }
+    else
+    {
+        <img id="remove-button" src="/images/close-circle.svg" height="30" @onclick="@OnRemoveAccount"/>
+    }
+</div>
 
 @code {
-	[Parameter]
-	public Account Account { get; set; }
 
-	private string statusImage;
-	private string tooltipText;
+    [Parameter]
+    public Account Account { get; set; }
 
-	private bool removeConfirming = false;
+    private string statusImage;
+    private string tooltipText;
 
-	protected override void OnInitialized()
-	{
-		switch (Account.Status)
-		{
-			case AccountStatus.Ready:
-				statusImage = "/images/checkmark-circle-outline.svg";
-				tooltipText = "Ready and waiting";
-				break;
+    private bool removeConfirming = false;
 
-			case AccountStatus.ActivelyStreaming:
-				statusImage = "/images/play-circle-outline.svg";
-				tooltipText = "Actively streaming";
-				break;
+    protected override void OnInitialized()
+    {
+        switch (Account.Status)
+        {
+            case AccountStatus.Ready:
+                statusImage = "/images/checkmark-circle-outline.svg";
+                tooltipText = "Ready and waiting";
+                break;
 
-			case AccountStatus.Error:
-				statusImage = "/images/alert-circle.svg";
-				tooltipText = "Error has occured";
-				break;
-		} 
-	}
+            case AccountStatus.ActivelyStreaming:
+                statusImage = "/images/play-circle-outline.svg";
+                tooltipText = "Actively streaming";
+                break;
 
-	protected void OnRemoveAccount(MouseEventArgs mouseEventArgs)
-	{
-		removeConfirming = true;
-	}
+            case AccountStatus.Error:
+                statusImage = "/images/alert-circle.svg";
+                tooltipText = "Error has occured";
+                break;
+        }
+    }
 
-	protected void OnConfirmClick(MouseEventArgs mouseEventArgs)
-	{
-		// TODO: Dispose of accounts credentials
-		removeConfirming = false;
-	}
+    protected void OnRemoveAccount(MouseEventArgs mouseEventArgs)
+    {
+        removeConfirming = true;
+    }
 
-	protected void OnCancelClick(MouseEventArgs mouseEventArgs)
-	{
-		removeConfirming = false;
-	}
+    protected void OnConfirmClick(MouseEventArgs mouseEventArgs)
+    {
+    // TODO: Dispose of accounts credentials
+        removeConfirming = false;
+    }
+
+    protected void OnCancelClick(MouseEventArgs mouseEventArgs)
+    {
+        removeConfirming = false;
+    }
+
 }

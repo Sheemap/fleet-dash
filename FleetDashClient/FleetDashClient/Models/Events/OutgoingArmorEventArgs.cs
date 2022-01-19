@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace FleetDashClient.Models.Events;
 
-namespace FleetDashClient.Models.Events
+public class OutgoingArmorEventArgs : EveLogEvent
 {
-	public class OutgoingArmorEventArgs : EveLogEvent
-	{
-		public OutgoingArmorEventArgs(string characterId, int amount, string pilot, string ship, string weapon) : base(characterId, amount, pilot, ship, weapon)
-		{
-		}
-	}
+    public OutgoingArmorEventArgs(string characterId, int amount, string pilot, string ship, string weapon) : base(
+        characterId, amount, pilot, ship, weapon)
+    {
+    }
 }

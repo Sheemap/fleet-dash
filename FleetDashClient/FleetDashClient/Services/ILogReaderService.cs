@@ -1,12 +1,11 @@
 ﻿using FleetDashClient.Models.Events;
 
-namespace FleetDashClient.Services
-{
-    public interface ILogReaderService
-    {
-        event EventHandler<LogFileReadEventArgs> RaiseFileReadEvent;
+namespace FleetDashClient.Services;
 
-        Task Start();
-        void Stop();
-    }
+public interface ILogReaderService
+{
+    event EventHandler<LogFileReadEventArgs> RaiseFileReadEvent;
+
+    Task Start();
+    void Stop();
 }

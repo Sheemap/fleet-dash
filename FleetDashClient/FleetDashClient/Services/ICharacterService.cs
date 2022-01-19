@@ -5,5 +5,4 @@ namespace FleetDashClient.Services;
 public interface ICharacterService
 {
     Task<Account[]> GetAccountList();
-    
 }

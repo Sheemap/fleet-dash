@@ -1,37 +1,38 @@
 using FleetDashClient.Models;
 
-namespace FleetDashClient.Services
+namespace FleetDashClient.Services;
+
+public class CharacterService : ICharacterService
 {
-    public class CharacterService : ICharacterService
+    public Task<Account[]> GetAccountList()
     {
-        public Task<Account[]> GetAccountList()
+        var accounts = new List<Account>();
+
+        for (var i = 0; i < 10; i++)
         {
-            var accounts = new List<Account>();
-
-            for (int i = 0; i < 10; i++)
+            var status = AccountStatus.Ready;
+            switch (i % 3)
             {
-                AccountStatus status = AccountStatus.Ready;
-                switch(i % 3)
-                {
-                    case 0:
-                        status = AccountStatus.Ready; break;
+                case 0:
+                    status = AccountStatus.Ready;
+                    break;
 
-                    case 1:
-                        status = AccountStatus.ActivelyStreaming; break;
+                case 1:
+                    status = AccountStatus.ActivelyStreaming;
+                    break;
 
-                    case 2:
-                        status = AccountStatus.Error; break;
-
-                }
-
-                accounts.Add(new Account
-                {
-                    Status = status,
-                    Name = "Hello",
-                });
+                case 2:
+                    status = AccountStatus.Error;
+                    break;
             }
 
-            return Task.FromResult(accounts.ToArray());
+            accounts.Add(new Account
+            {
+                Status = status,
+                Name = "Hello"
+            });
         }
+
+        return Task.FromResult(accounts.ToArray());
     }
 }

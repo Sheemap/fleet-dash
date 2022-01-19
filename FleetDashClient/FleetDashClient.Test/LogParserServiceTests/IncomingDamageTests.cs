@@ -9,19 +9,19 @@ namespace FleetDashClient.Test.LogParserServiceTests;
 
 public class IncomingDamageTests
 {
-    private readonly Mock<ILogReaderService> _logReaderMock;
-    private readonly ILogParserService _logParserService;
-    
     private const string SingleDamageIncomingLine =
         "[ 2022.01.15 23:16:37 ] (combat) <color=0xffcc0000><b>164</b> <color=0x77ffffff><font size=10>from</font> <b><color=0xffffffff>Anonymous Eve Player[TAGE](Harbinger)</b><font size=10><color=0x77ffffff> - Focused Medium Beam Laser II - Penetrates";
-    
+
+    private readonly ILogParserService _logParserService;
+    private readonly Mock<ILogReaderService> _logReaderMock;
+
     public IncomingDamageTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamageNonRegisteredCharacter_ShouldNotEmitEvent()
     {
@@ -51,7 +51,7 @@ public class IncomingDamageTests
 
         Assert.Single(emittedEvents);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectCharacterID()
     {
@@ -66,7 +66,7 @@ public class IncomingDamageTests
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectAmount()
     {
@@ -81,7 +81,7 @@ public class IncomingDamageTests
 
         Assert.Equal(164, emittedEvents[0].Amount);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectName()
     {
@@ -111,7 +111,7 @@ public class IncomingDamageTests
 
         Assert.Equal("Harbinger", emittedEvents[0].Ship);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectWeapon()
     {
@@ -126,7 +126,7 @@ public class IncomingDamageTests
 
         Assert.Equal("Focused Medium Beam Laser II", emittedEvents[0].Weapon);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectApplication()
     {

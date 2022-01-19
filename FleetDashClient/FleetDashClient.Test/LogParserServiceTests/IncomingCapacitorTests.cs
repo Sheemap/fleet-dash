@@ -10,24 +10,24 @@ namespace FleetDashClient.Test.LogParserServiceTests;
 
 public class IncomingCapacitorTests
 {
-    private readonly Mock<ILogReaderService> _logReaderMock;
-    private readonly ILogParserService _logParserService;
-    
-    private readonly string _overviewSettings;
-    
-    private const string SingleCapacitorIncomingLineWithOverview = 
+    private const string SingleCapacitorIncomingLineWithOverview =
         "[ 2022.01.17 22:57:13 ] (combat) <color=0xffccff66><b>351</b><color=0x77ffffff><font size=10> remote capacitor transmitted by </font><b><color=0xffffffff><fontsize=12><color=0xFFFEBB64><b> <u>Augoror</u></b></color></fontsize><fontsize=12><color=0xFFFEFF6F> [ALLIANCE]</color></fontsize> <fontsize=10><b>[CORP]</b></fontsize><fontsize=10> [Anonymous Eve Player]</fontsize><color=0xFFFFFFFF><b> -</b><color=0x77ffffff><font size=10> - Medium Remote Capacitor Transmitter II</font>";
-    
+
+    private readonly ILogParserService _logParserService;
+    private readonly Mock<ILogReaderService> _logReaderMock;
+
+    private readonly string _overviewSettings;
+
     public IncomingCapacitorTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
-        
+
         using var streamReader = new StreamReader(@"TestData\ValidOverview.yaml");
         _overviewSettings = streamReader.ReadToEnd();
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorNonRegisteredCharacter_ShouldNotEmitEvent()
     {
@@ -41,7 +41,7 @@ public class IncomingCapacitorTests
 
         Assert.Empty(emittedEvents);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitEvent()
     {
@@ -56,7 +56,7 @@ public class IncomingCapacitorTests
 
         Assert.Single(emittedEvents);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitCorrectAmount()
     {
@@ -71,7 +71,7 @@ public class IncomingCapacitorTests
 
         Assert.Equal(351, emittedEvents[0].Amount);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitCorrectCharacterId()
     {
@@ -86,6 +86,7 @@ public class IncomingCapacitorTests
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
     }
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitCorrectShip()
     {
@@ -100,7 +101,7 @@ public class IncomingCapacitorTests
 
         Assert.Equal("Augoror", emittedEvents[0].Ship);
     }
-    
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitCorrectWeapon()
     {
@@ -115,6 +116,7 @@ public class IncomingCapacitorTests
 
         Assert.Equal("Medium Remote Capacitor Transmitter II", emittedEvents[0].Weapon);
     }
+
     [Fact]
     public void RaiseFileReadEvent_IncomingCapacitorWithOverview_ShouldEmitCorrectName()
     {

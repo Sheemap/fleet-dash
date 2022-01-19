@@ -1,20 +1,15 @@
-﻿using FleetDashClient.Models.Events;
+﻿using System.IO;
 using FleetDashClient.Services;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
+using YamlDotNet.Core;
 
 namespace FleetDashClient.Test.LogParserServiceTests;
 
 public class MiscTests
 {
-    private readonly Mock<ILogReaderService> _logReaderMock;
     private readonly ILogParserService _logParserService;
+    private readonly Mock<ILogReaderService> _logReaderMock;
 
     public MiscTests()
     {
@@ -33,7 +28,7 @@ public class MiscTests
         // Act
         _logParserService.StartWatchingCharacter("123", overviewYaml);
     }
-    
+
     [Fact]
     public void StartWatchingCharacter_InvalidYaml_ShouldThrow()
     {
@@ -42,9 +37,7 @@ public class MiscTests
         var overviewYaml = streamReader.ReadToEnd();
 
         // Act
-        Assert.ThrowsAny<YamlDotNet.Core.YamlException>(
+        Assert.ThrowsAny<YamlException>(
             () => _logParserService.StartWatchingCharacter("123", overviewYaml));
-        
     }
 }
-

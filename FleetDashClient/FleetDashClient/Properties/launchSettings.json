@@ -8,7 +8,7 @@
     }
   },
   "profiles": {
-    "Electron" : {
+    "Electron": {
       "commandName": "Executable",
       "executablePath": "dotnet",
       "commandLineArgs": "electronize start",

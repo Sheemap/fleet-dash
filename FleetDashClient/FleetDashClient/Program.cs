@@ -1,7 +1,5 @@
 using ElectronNET.API;
 using FleetDashClient;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using FleetDashClient.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,9 +31,6 @@ app.UseRouting();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-if (HybridSupport.IsElectronActive)
-{
-    ElectronBootstrap.Bootstrap();
-}
+if (HybridSupport.IsElectronActive) ElectronBootstrap.Bootstrap();
 
 app.Run();

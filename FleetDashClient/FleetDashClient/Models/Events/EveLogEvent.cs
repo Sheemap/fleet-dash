@@ -10,7 +10,7 @@ public class EveLogEvent : EventArgs
         Ship = ship;
         Weapon = weapon;
     }
-		
+
     public string CharacterId { get; }
     public int Amount { get; }
     public string Pilot { get; }
