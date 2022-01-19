@@ -17,10 +17,16 @@ namespace FleetDashClient.Services
         public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
         public event EventHandler<IncomingHullEventArgs> RaiseIncomingHullEvent;
         public event EventHandler<OutgoingHullEventArgs> RaiseOutgoingHullEvent;
+        public event EventHandler<IncomingShieldEventArgs> RaiseIncomingShieldEvent;
+        public event EventHandler<OutgoingShieldEventArgs> RaiseOutgoingShieldEvent;
         public event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
         public event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
         public event EventHandler<IncomingCapacitorEventArgs> RaiseIncomingCapacitorEvent;
         public event EventHandler<OutgoingCapacitorEventArgs> RaiseOutgoingCapacitorEvent;
+        public event EventHandler<IncomingNeutEventArgs> RaiseIncomingNeutEvent;
+        public event EventHandler<OutgoingNeutEventArgs> RaiseOutgoingNeutEvent;
+        public event EventHandler<IncomingNosEventArgs> RaiseIncomingNosEvent;
+        public event EventHandler<OutgoingNosEventArgs> RaiseOutgoingNosEvent;
 
         
         private readonly Dictionary<string, string?> _watchedCharacters = new();
@@ -156,10 +162,16 @@ namespace FleetDashClient.Services
             CallUntilTrueReturned(e.CharacterId, line,
                 FindAndRaiseIncomingDamage,
                 FindAndRaiseOutgoingDamage,
+                FindAndRaiseIncomingShield,
+                FindAndRaiseOutgoingShield,
                 FindAndRaiseIncomingArmor,
                 FindAndRaiseOutgoingArmor,
                 FindAndRaiseIncomingCapacitor,
                 FindAndRaiseOutgoingCapacitor,
+                FindAndRaiseIncomingNeut,
+                FindAndRaiseOutgoingNeut,
+                FindAndRaiseIncomingNos,
+                FindAndRaiseOutgoingNos,
                 FindAndRaiseIncomingHull,
                 FindAndRaiseOutgoingHull);
         }
@@ -200,6 +212,60 @@ namespace FleetDashClient.Services
                 
             eventHandler(this, newEvent);
             return true;
+        }
+        
+        private bool FindAndRaiseIncomingNos(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingNosEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingNosEvent, Constants.EnglishRegex.IncomingNos,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseOutgoingNos(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingNosEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingNosEvent, Constants.EnglishRegex.OutgoingNos,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseIncomingNeut(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingNeutEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingNeutEvent, Constants.EnglishRegex.IncomingNeut,
+                argsBuilder, characterId, logLine);
+        }
+
+        private bool FindAndRaiseOutgoingNeut(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingNeutEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingNeutEvent, Constants.EnglishRegex.OutgoingNeut,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseIncomingShield(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingShieldEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingShieldEvent, Constants.EnglishRegex.IncomingShield,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseOutgoingShield(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingShieldEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingShieldEvent, Constants.EnglishRegex.OutgoingShield,
+                argsBuilder, characterId, logLine);
         }
 
         private bool FindAndRaiseIncomingArmor(string characterId, string logLine)

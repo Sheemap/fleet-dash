@@ -20,5 +20,11 @@ namespace FleetDashClient.Services
 		event EventHandler<OutgoingCapacitorEventArgs> RaiseOutgoingCapacitorEvent;
 		event EventHandler<IncomingHullEventArgs> RaiseIncomingHullEvent;
 		event EventHandler<OutgoingHullEventArgs> RaiseOutgoingHullEvent;
+		event EventHandler<IncomingShieldEventArgs> RaiseIncomingShieldEvent;
+		event EventHandler<OutgoingShieldEventArgs> RaiseOutgoingShieldEvent;
+		event EventHandler<IncomingNeutEventArgs> RaiseIncomingNeutEvent;
+		event EventHandler<OutgoingNeutEventArgs> RaiseOutgoingNeutEvent;
+		event EventHandler<IncomingNosEventArgs> RaiseIncomingNosEvent;
+		event EventHandler<OutgoingNosEventArgs> RaiseOutgoingNosEvent;
 	}
 }
