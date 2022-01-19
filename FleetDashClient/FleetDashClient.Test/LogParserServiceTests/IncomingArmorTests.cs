@@ -98,7 +98,7 @@ public class IncomingArmorTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorIncomingLineWithOverview)));
 
-        Assert.Equal("Augoror", emittedEvents[0].FromShip);
+        Assert.Equal("Augoror", emittedEvents[0].Ship);
     }
     
     [Fact]
@@ -127,6 +127,6 @@ public class IncomingArmorTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorIncomingLineWithOverview)));
 
-        Assert.Equal("Anonymous Eve Player", emittedEvents[0].FromName);
+        Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
     }
 }

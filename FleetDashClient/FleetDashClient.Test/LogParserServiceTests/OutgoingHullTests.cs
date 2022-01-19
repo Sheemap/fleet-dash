@@ -8,17 +8,17 @@ using Xunit;
 
 namespace FleetDashClient.Test.LogParserServiceTests;
 
-public class OutgoingArmorTests
+public class OutgoingHullTests
 {
     private readonly Mock<ILogReaderService> _logReaderMock;
     private readonly ILogParserService _logParserService;
     
     private readonly string _overviewSettings;
     
-    private const string SingleArmorOutgoingLineWithOverview =
-        "[ 2022.01.17 20:28:44 ] (combat) <color=0xffccff66><b>416</b><color=0x77ffffff><font size=10> remote armor repaired to </font><b><color=0xffffffff><fontsize=12><color=0xFFFEBB64><b> <u>Hurricane</u></b></color></fontsize><fontsize=12><color=0xFFFEFF6F> [ALLIANCE_TAG]</color></fontsize> <fontsize=10><b>[CORP_TAG]</b></fontsize><fontsize=10> [Anonymous Eve Player]</fontsize><color=0xFFFFFFFF><b> -</b><color=0x77ffffff><font size=10> - Medium Remote Armor Repairer II</font>";
+    private const string SingleHullOutgoingLineWithOverview =
+        "[ 2022.01.17 20:28:44 ] (combat) <color=0xffccff66><b>416</b><color=0x77ffffff><font size=10> remote hull repaired to </font><b><color=0xffffffff><fontsize=12><color=0xFFFEBB64><b> <u>Hurricane</u></b></color></fontsize><fontsize=12><color=0xFFFEFF6F> [ALLIANCE_TAG]</color></fontsize> <fontsize=10><b>[CORP_TAG]</b></fontsize><fontsize=10> [Anonymous Eve Player]</fontsize><color=0xFFFFFFFF><b> -</b><color=0x77ffffff><font size=10> - Medium Remote Armor Repairer II</font>";
     
-    public OutgoingArmorTests()
+    public OutgoingHullTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
@@ -29,15 +29,15 @@ public class OutgoingArmorTests
     }
     
     [Fact]
-    public void RaiseFileReadEvent_OutgoingArmorNonRegisteredCharacter_ShouldNotEmitEvent()
+    public void RaiseFileReadEvent_OutgoingHullNonRegisteredCharacter_ShouldNotEmitEvent()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Empty(emittedEvents);
     }
@@ -45,14 +45,14 @@ public class OutgoingArmorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitEvent()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Single(emittedEvents);
     }
@@ -60,14 +60,14 @@ public class OutgoingArmorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitCorrectAmount()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Equal(416, emittedEvents[0].Amount);
     }
@@ -75,28 +75,28 @@ public class OutgoingArmorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitCorrectCharacterId()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
     }
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitCorrectShip()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Equal("Hurricane", emittedEvents[0].Ship);
     }
@@ -104,28 +104,28 @@ public class OutgoingArmorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitCorrectWeapon()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Equal("Medium Remote Armor Repairer II", emittedEvents[0].Weapon);
     }
     [Fact]
     public void RaiseFileReadEvent_OutgoingArmorWithOverview_ShouldEmitCorrectName()
     {
-        var emittedEvents = new List<OutgoingArmorEventArgs>();
+        var emittedEvents = new List<OutgoingHullEventArgs>();
 
-        _logParserService.RaiseOutgoingArmorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.RaiseOutgoingHullEvent += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleArmorOutgoingLineWithOverview)));
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullOutgoingLineWithOverview)));
 
         Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
     }

@@ -94,24 +94,9 @@ public class IncomingDamageTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
-        Assert.Equal("Anonymous Eve Player", emittedEvents[0].FromName);
+        Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
     }
-    
-    [Fact]
-    public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectTag()
-    {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", null);
-
-        // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
-
-        Assert.Equal("TAGE", emittedEvents[0].FromTag);
-    }
-    
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectShip()
     {
@@ -124,7 +109,7 @@ public class IncomingDamageTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
-        Assert.Equal("Harbinger", emittedEvents[0].FromShip);
+        Assert.Equal("Harbinger", emittedEvents[0].Ship);
     }
     
     [Fact]

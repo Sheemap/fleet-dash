@@ -80,22 +80,7 @@ public class OutgoingDamageTests
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
     }
-    
-    [Fact]
-    public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectTag()
-    {
-        var emittedEvents = new List<OutgoingDamageEventArgs>();
 
-        _logParserService.RaiseOutgoingDamageEvent += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", null);
-
-        // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
-            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageOutgoingLine)));
-
-        Assert.Equal("TAGE", emittedEvents[0].ToTag);
-    }
-    
     [Fact]
     public void RaiseFileReadEvent_OutgoingDamage_ShouldEmitCorrectShip()
     {
@@ -108,7 +93,7 @@ public class OutgoingDamageTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageOutgoingLine)));
 
-        Assert.Equal("Exequror", emittedEvents[0].ToShip);
+        Assert.Equal("Exequror", emittedEvents[0].Ship);
     }
     
     [Fact]
@@ -153,6 +138,6 @@ public class OutgoingDamageTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageOutgoingLine)));
 
-        Assert.Equal("Anonymous Eve Player", emittedEvents[0].ToName);
+        Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
     }
 }

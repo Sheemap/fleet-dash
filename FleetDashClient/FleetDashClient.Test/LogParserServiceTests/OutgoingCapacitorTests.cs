@@ -98,7 +98,7 @@ public class OutgoingCapacitorTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
-        Assert.Equal("Augoror", emittedEvents[0].ToShip);
+        Assert.Equal("Augoror", emittedEvents[0].Ship);
     }
     
     [Fact]
@@ -127,6 +127,6 @@ public class OutgoingCapacitorTests
         _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
-        Assert.Equal("Anonymous Eve Player", emittedEvents[0].ToName);
+        Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
     }
 }

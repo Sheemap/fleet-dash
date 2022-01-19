@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace FleetDashClient.Services
 {
@@ -14,6 +15,8 @@ namespace FleetDashClient.Services
 	{
         public event EventHandler<IncomingDamageEventArgs> RaiseIncomingDamageEvent;
         public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
+        public event EventHandler<IncomingHullEventArgs> RaiseIncomingHullEvent;
+        public event EventHandler<OutgoingHullEventArgs> RaiseOutgoingHullEvent;
         public event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
         public event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
         public event EventHandler<IncomingCapacitorEventArgs> RaiseIncomingCapacitorEvent;
@@ -149,140 +152,152 @@ namespace FleetDashClient.Services
             if (!_watchedCharacters.ContainsKey(e.CharacterId)) return;
             
             var line = Encoding.UTF8.GetString(e.Content);
-            FindAndRaiseIncomingDamage(e.CharacterId, line);
-            FindAndRaiseOutgoingDamage(e.CharacterId, line);
-            FindAndRaiseIncomingArmor(e.CharacterId, line);
-            FindAndRaiseOutgoingArmor(e.CharacterId, line);
-            FindAndRaiseIncomingCapacitor(e.CharacterId, line);
-            FindAndRaiseOutgoingCapacitor(e.CharacterId, line);
+
+            CallUntilTrueReturned(e.CharacterId, line,
+                FindAndRaiseIncomingDamage,
+                FindAndRaiseOutgoingDamage,
+                FindAndRaiseIncomingArmor,
+                FindAndRaiseOutgoingArmor,
+                FindAndRaiseIncomingCapacitor,
+                FindAndRaiseOutgoingCapacitor,
+                FindAndRaiseIncomingHull,
+                FindAndRaiseOutgoingHull);
         }
         
-        private void FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
+        /// <summary>
+        /// Calls each function with the given params until one function returns true
+        /// This allows us to quit early if we find a match, without a gigantic if chain
+        /// </summary>
+        /// <param name="characterId"></param>
+        /// <param name="logLine"></param>
+        /// <param name="functions"></param>
+        private static void CallUntilTrueReturned(string characterId, string logLine,
+            params Func<string, string, bool> [] functions)
         {
-            var raiseEvent = RaiseOutgoingCapacitorEvent;
-            if (raiseEvent == null) return;
-
-            var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
-
-            var regex = new Regex(Constants.EnglishRegex.OutgoingCapacitor + charRegex);
-            var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 6)
+            foreach (var func in functions)
             {
-                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var newEvent = new OutgoingCapacitorEventArgs(characterId, amountReceived, toName, toShip, weapon);
-
-                raiseEvent(this, newEvent);
+                if (func(characterId, logLine)) break;
             }
         }
-
-        private void FindAndRaiseIncomingCapacitor(string characterId, string logLine)
+        
+        private bool FindAndRaiseEvent<T>(EventHandler<T> eventHandler, string constantRegex,
+            Func<string, int, string, string,string, T> argsFactory, string characterId, string logLine)
+            where T : EveLogEvent
         {
-            var raiseEvent = RaiseIncomingCapacitorEvent;
-            if (raiseEvent == null) return;
-
+            if (eventHandler == null) return false;
+        
             var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
-
-            var regex = new Regex(Constants.EnglishRegex.IncomingCapacitor + charRegex);
+        
+            var regex = new Regex(constantRegex + charRegex);
             var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 6)
-            {
-                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var newEvent = new IncomingCapacitorEventArgs(characterId, amountReceived, toName, toShip, weapon);
-
-                raiseEvent(this, newEvent);
-            }
+            if (!match.Success) return false;
+            
+            var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
+            var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
+            var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
+            var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
+            var newEvent = argsFactory(characterId, amountReceived, toName, toShip, weapon);
+                
+            eventHandler(this, newEvent);
+            return true;
         }
 
-        private void FindAndRaiseIncomingArmor(string characterId, string logLine)
+        private bool FindAndRaiseIncomingArmor(string characterId, string logLine)
         {
-            var raiseArmor = RaiseIncomingArmorEvent;
-            if (raiseArmor == null) return;
-
-            var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
-
-            var regex = new Regex(Constants.EnglishRegex.IncomingArmor + charRegex);
-            var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 6)
-            {
-                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var newEvent = new IncomingArmorEventArgs(characterId, amountReceived, toName, toShip, weapon);
-
-                raiseArmor(this, newEvent);
-            }
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingArmorEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingArmorEvent, Constants.EnglishRegex.IncomingArmor,
+                argsBuilder, characterId, logLine);
         }
-
-        private void FindAndRaiseOutgoingArmor(string characterId, string logLine)
+        
+        private bool FindAndRaiseOutgoingArmor(string characterId, string logLine)
         {
-            var raiseArmor = RaiseOutgoingArmorEvent;
-            if (raiseArmor == null) return;
-
-            var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
-
-            var regex = new Regex(Constants.EnglishRegex.OutgoingArmor + charRegex);
-            var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 6)
-            {
-                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var newEvent = new OutgoingArmorEventArgs(characterId, amountReceived, toName, toShip, weapon);
-
-                raiseArmor(this, newEvent);
-            }
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingArmorEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingArmorEvent, Constants.EnglishRegex.OutgoingArmor,
+                argsBuilder, characterId, logLine);
         }
-
-        private void FindAndRaiseIncomingDamage(string characterId, string logLine)
+        
+        private bool FindAndRaiseIncomingCapacitor(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingCapacitorEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingCapacitorEvent, Constants.EnglishRegex.IncomingCapacitor,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingCapacitorEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingCapacitorEvent, Constants.EnglishRegex.OutgoingCapacitor,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseIncomingHull(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new IncomingHullEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseIncomingHullEvent, Constants.EnglishRegex.IncomingHull,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseOutgoingHull(string characterId, string logLine)
+        {
+            var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
+                new OutgoingHullEventArgs(characterId, amount, pilot, ship, weapon);
+            
+            return FindAndRaiseEvent(RaiseOutgoingHullEvent, Constants.EnglishRegex.OutgoingHull,
+                argsBuilder, characterId, logLine);
+        }
+        
+        private bool FindAndRaiseIncomingDamage(string characterId, string logLine)
         {
             var raiseDamage = RaiseIncomingDamageEvent;
-            if (raiseDamage == null) return;
+            if (raiseDamage == null) return false;
 
             var regex = new Regex(Constants.EnglishRegex.IncomingDamage + Constants.EnglishRegex.PilotAndWeapon);
             var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 7)
-            {
-                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var fromName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var fromTag = match.Groups.GetValueOrDefault("Tag")?.Value ?? "Unknown";
-                var fromShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
-                var newEvent = new IncomingDamageEventArgs(characterId, amountReceived, fromName, fromTag, fromShip,
-                    weapon, application);
+            if (!match.Success) return false;
+            
+            var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
+            var fromName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
+            var fromShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
+            var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
+            var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
+            var newEvent = new IncomingDamageEventArgs(characterId, amountReceived, fromName, fromShip,
+                weapon, application);
 
-                raiseDamage(this, newEvent);
-            }
+            raiseDamage(this, newEvent);
+            return true;
+
         }
 
-        private void FindAndRaiseOutgoingDamage(string characterId, string logLine)
+        private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
         {
             var raiseDamage = RaiseOutgoingDamageEvent;
-            if (raiseDamage == null) return;
+            if (raiseDamage == null) return false;
             
             var regex = new Regex(Constants.EnglishRegex.OutgoingDamage + Constants.EnglishRegex.PilotAndWeapon);
             var match = regex.Match(logLine);
-            if (match.Success && match.Groups.Count >= 7)
-            {
-                var amount = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
-                var toTag = match.Groups.GetValueOrDefault("Tag")?.Value ?? "Unknown";
-                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-                var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
-                var newEvent = new OutgoingDamageEventArgs(characterId, amount, toName, toTag, toShip, weapon,
-                    application);
+            if (!match.Success) return false;
+            
+            var amount = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
+            var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
+            var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
+            var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
+            var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
+            var newEvent = new OutgoingDamageEventArgs(characterId, amount, toName, toShip, weapon,
+                application);
 
-                raiseDamage(this, newEvent);
-            }
+            raiseDamage(this, newEvent);
+            return true;
+
         }
     }
 }

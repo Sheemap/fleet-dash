@@ -6,21 +6,10 @@ using System.Threading.Tasks;
 
 namespace FleetDashClient.Models.Events
 {
-	public class OutgoingArmorEventArgs : EventArgs
+	public class OutgoingArmorEventArgs : EveLogEvent
 	{
-		public OutgoingArmorEventArgs(string characterId, int amount, string toName, string toShip, string weapon)
+		public OutgoingArmorEventArgs(string characterId, int amount, string pilot, string ship, string weapon) : base(characterId, amount, pilot, ship, weapon)
 		{
-			CharacterId = characterId;
-			Amount = amount;
-			ToName = toName;
-			ToShip = toShip;
-			Weapon = weapon;
 		}
-		
-		public string CharacterId { get; }
-		public int Amount { get; }
-		public string ToName { get; }
-		public string ToShip { get; }
-		public string Weapon { get; }
 	}
 }
