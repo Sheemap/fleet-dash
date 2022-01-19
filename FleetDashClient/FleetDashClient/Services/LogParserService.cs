@@ -16,6 +16,8 @@ namespace FleetDashClient.Services
         public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
         public event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
         public event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
+        public event EventHandler<IncomingCapacitorEventArgs> RaiseIncomingCapacitorEvent;
+
         
         private readonly Dictionary<string, string?> _watchedCharacters = new();
 
@@ -150,6 +152,28 @@ namespace FleetDashClient.Services
             FindAndRaiseOutgoingDamage(e.CharacterId, line);
             FindAndRaiseIncomingArmor(e.CharacterId, line);
             FindAndRaiseOutgoingArmor(e.CharacterId, line);
+            FindAndRaiseIncomingCapacitor(e.CharacterId, line);
+        }
+        
+        private void FindAndRaiseIncomingCapacitor(string characterId, string logLine)
+        {
+            var raiseEvent = RaiseIncomingCapacitorEvent;
+            if (raiseEvent == null) return;
+
+            var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
+
+            var regex = new Regex(Constants.EnglishRegex.IncomingCapacitor + charRegex);
+            var match = regex.Match(logLine);
+            if (match.Success && match.Groups.Count >= 6)
+            {
+                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
+                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
+                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
+                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
+                var newEvent = new IncomingCapacitorEventArgs(characterId, amountReceived, toName, toShip, weapon);
+
+                raiseEvent(this, newEvent);
+            }
         }
 
         private void FindAndRaiseIncomingArmor(string characterId, string logLine)

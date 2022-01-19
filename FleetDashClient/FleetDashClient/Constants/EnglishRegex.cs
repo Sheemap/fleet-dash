@@ -7,4 +7,5 @@ public static class EnglishRegex
     public const string OutgoingDamage = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*>to<";
     public const string IncomingArmor = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*> remote armor repaired by <";
     public const string OutgoingArmor = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*> remote armor repaired to <";
+    public const string IncomingCapacitor = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*> remote capacitor transmitted by <";
 }
