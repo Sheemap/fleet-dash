@@ -17,5 +17,6 @@ namespace FleetDashClient.Services
 		event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
 		event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
 		event EventHandler<IncomingCapacitorEventArgs> RaiseIncomingCapacitorEvent;
+		event EventHandler<OutgoingCapacitorEventArgs> RaiseOutgoingCapacitorEvent;
 	}
 }
