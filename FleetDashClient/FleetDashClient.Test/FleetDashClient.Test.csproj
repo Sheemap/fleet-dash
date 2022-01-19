@@ -25,4 +25,13 @@
       <ProjectReference Include="..\FleetDashClient\FleetDashClient.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="TestData\ValidOverview.yaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestData\InvalidOverview.yaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>
