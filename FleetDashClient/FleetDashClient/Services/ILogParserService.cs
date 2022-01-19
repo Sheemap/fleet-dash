@@ -15,5 +15,6 @@ namespace FleetDashClient.Services
 		void StartWatchingCharacter(string characterId, string overviewSettings);
 		void StopWatchingCharacter(string characterId);
 		event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
+		event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
 	}
 }

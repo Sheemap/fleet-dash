@@ -14,9 +14,10 @@ namespace FleetDashClient.Services
 	{
         public event EventHandler<IncomingDamageEventArgs> RaiseIncomingDamageEvent;
         public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
+        public event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
         public event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
         
-        private readonly Dictionary<string, string?> _watchedCharacters = new Dictionary<string, string?>();
+        private readonly Dictionary<string, string?> _watchedCharacters = new();
 
         public LogParserService(ILogReaderService logReaderService)
         {
@@ -147,12 +148,29 @@ namespace FleetDashClient.Services
             var line = Encoding.UTF8.GetString(e.Content);
             FindAndRaiseIncomingDamage(e.CharacterId, line);
             FindAndRaiseOutgoingDamage(e.CharacterId, line);
+            FindAndRaiseIncomingArmor(e.CharacterId, line);
             FindAndRaiseOutgoingArmor(e.CharacterId, line);
         }
 
         private void FindAndRaiseIncomingArmor(string characterId, string logLine)
         {
-            
+            var raiseArmor = RaiseIncomingArmorEvent;
+            if (raiseArmor == null) return;
+
+            var charRegex = _watchedCharacters.GetValueOrDefault(characterId, Constants.EnglishRegex.PilotAndWeapon);
+
+            var regex = new Regex(Constants.EnglishRegex.IncomingArmor + charRegex);
+            var match = regex.Match(logLine);
+            if (match.Success && match.Groups.Count >= 6)
+            {
+                var amountReceived = Int32.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
+                var toName = match.Groups.GetValueOrDefault("Name")?.Value ?? "Unknown";
+                var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
+                var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
+                var newEvent = new IncomingArmorEventArgs(characterId, amountReceived, toName, toShip, weapon);
+
+                raiseArmor(this, newEvent);
+            }
         }
 
         private void FindAndRaiseOutgoingArmor(string characterId, string logLine)

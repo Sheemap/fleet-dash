@@ -29,7 +29,7 @@ public class OutgoingArmorTests
     }
     
     [Fact]
-    public void RaiseFileReadEvent_OutgoingDamageNonRegisteredCharacter_ShouldNotEmitEvent()
+    public void RaiseFileReadEvent_OutgoingArmorNonRegisteredCharacter_ShouldNotEmitEvent()
     {
         var emittedEvents = new List<OutgoingArmorEventArgs>();
 
