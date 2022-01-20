@@ -4,6 +4,8 @@
 @inject ICharacterService _characterService
 @inject IndexViewModel _indexViewModel
 
+<LogSettings />
+
 <div id="account-list">
     <div class="account-status">Status</div>
     <div class="account-name">Name</div>
@@ -11,7 +13,7 @@
     <hr style="height: 2px;"/>
     @if (_indexViewModel.Characters.Count == 0)
     {
-        <p>
+        <p class="account-name">
             <em>No accounts setup yet.</em>
         </p>
     }

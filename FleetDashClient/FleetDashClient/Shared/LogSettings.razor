@@ -1,0 +1,8 @@
+﻿@using ElectronNET.API
+@using ElectronNET.API.Entities
+@using FleetDashClient.ViewModels
+
+@inject LogViewModel _logViewModel
+
+<p><strong>Log Directory:</strong> @_logViewModel.LogDirectory <button @onclick="_logViewModel.UpdateLogDirectory">Change</button></p>
+<p><strong>Overview</strong>: @_logViewModel.Overview <button @onclick="_logViewModel.UpdateOverview">Change</button></p>
