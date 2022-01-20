@@ -6,7 +6,7 @@
         <img src="@statusImage" height="30"/>
     </Tooltip>
 </div>
-<div class="account-name">@Account.Name</div>
+<div class="account-name">@Character.Name</div>
 <div class="account-remove-btn">
     @if (removeConfirming)
     {
@@ -22,7 +22,13 @@
 @code {
 
     [Parameter]
-    public Account Account { get; set; }
+    public Character Character { get; set; }
+    [Parameter]
+    public CharacterStatus Status { get; set; }
+    [Parameter]
+    public Func<string, Task> DeleteCharacterHook { get; set; }
+    [Parameter]
+    public Action RefreshList { get; set; }
 
     private string statusImage;
     private string tooltipText;
@@ -31,37 +37,38 @@
 
     protected override void OnInitialized()
     {
-        switch (Account.Status)
+        switch (Status)
         {
-            case AccountStatus.Ready:
+            case CharacterStatus.Ready:
                 statusImage = "/images/checkmark-circle-outline.svg";
                 tooltipText = "Ready and waiting";
                 break;
 
-            case AccountStatus.ActivelyStreaming:
+            case CharacterStatus.ActivelyStreaming:
                 statusImage = "/images/play-circle-outline.svg";
                 tooltipText = "Actively streaming";
                 break;
 
-            case AccountStatus.Error:
+            case CharacterStatus.Error:
                 statusImage = "/images/alert-circle.svg";
                 tooltipText = "Error has occured";
                 break;
         }
     }
 
-    protected void OnRemoveAccount(MouseEventArgs mouseEventArgs)
+    private void OnRemoveAccount(MouseEventArgs mouseEventArgs)
     {
         removeConfirming = true;
     }
 
-    protected void OnConfirmClick(MouseEventArgs mouseEventArgs)
+    private async Task OnConfirmClick(MouseEventArgs mouseEventArgs)
     {
-    // TODO: Dispose of accounts credentials
+        await DeleteCharacterHook(Character.Id);
         removeConfirming = false;
+        RefreshList();
     }
 
-    protected void OnCancelClick(MouseEventArgs mouseEventArgs)
+    private void OnCancelClick(MouseEventArgs mouseEventArgs)
     {
         removeConfirming = false;
     }

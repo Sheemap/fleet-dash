@@ -1,6 +1,6 @@
 ﻿namespace FleetDashClient.Models;
 
-public enum AccountStatus
+public enum CharacterStatus
 {
     Ready = 0,
     ActivelyStreaming = 1,

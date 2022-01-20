@@ -1,38 +1,64 @@
+using FleetDashClient.Data;
 using FleetDashClient.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace FleetDashClient.Services;
 
 public class CharacterService : ICharacterService
 {
-    public Task<Account[]> GetAccountList()
+    private readonly DataContext _dbContext;
+    
+    public CharacterService(DataContext dbContext)
     {
-        var accounts = new List<Account>();
+        _dbContext = dbContext;
+    }
+    
+    public Task<IEnumerable<Character>> GetCharacterListAsync()
+    {
+        return Task.FromResult(_dbContext.Characters.AsEnumerable());
+    }
+    
+    public async Task<Character> AddCharacterAsync(Character character)
+    {
+        _dbContext.Characters.Add(character);
+        await _dbContext.SaveChangesAsync();
+        
+        return character;
+    }
 
-        for (var i = 0; i < 10; i++)
+    public async Task RemoveCharacterAsync(string characterId)
+    {
+        var character = _dbContext.Characters.Where(x => x.Id == characterId);
+        var tokens = _dbContext.Tokens.Where(x => x.CharacterId == characterId);
+        _dbContext.Characters.RemoveRange(character);
+        _dbContext.Tokens.RemoveRange(tokens);
+
+        await _dbContext.SaveChangesAsync();
+    }
+    
+    public Character? GetCharacter(string characterId)
+    {
+        return _dbContext.Characters.FirstOrDefault(x => x.Id == characterId);
+    }
+
+    public CharacterStatus GetCharacterStatus(string characterId)
+    {
+        var character = _dbContext.Characters
+            .Include(x => x.Tokens)
+            .FirstOrDefault(x => x.Id == characterId);
+        if (character == null)
         {
-            var status = AccountStatus.Ready;
-            switch (i % 3)
-            {
-                case 0:
-                    status = AccountStatus.Ready;
-                    break;
-
-                case 1:
-                    status = AccountStatus.ActivelyStreaming;
-                    break;
-
-                case 2:
-                    status = AccountStatus.Error;
-                    break;
-            }
-
-            accounts.Add(new Account
-            {
-                Status = status,
-                Name = "Hello"
-            });
+            return CharacterStatus.Error;
         }
+        
+        return character.Tokens.Any(x => x.ExpiresAt > DateTimeOffset.Now)
+            ? CharacterStatus.Ready
+            : CharacterStatus.Error;
+    }
 
-        return Task.FromResult(accounts.ToArray());
+    public void AddTokens(params Token[] tokens)
+    {
+        _dbContext.Tokens.AddRange(tokens);
+        _dbContext.SaveChanges();
     }
 }

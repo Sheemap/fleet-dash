@@ -1,49 +1,46 @@
 @page "/"
 @using FleetDashClient.Services
-@using FleetDashClient.Models
-@inject CharacterService _characterService
-<p>Log Directory: @logDirectory <button>Change</button></p>
+@using FleetDashClient.ViewModels
+@inject ICharacterService _characterService
+@inject IndexViewModel _indexViewModel
 
-@if (accounts == null)
-{
-    <p>
-        <em>Loading...</em>
-    </p>
-}
-else
-{
-    <div id="account-list">
-        <div class="account-status">Status</div>
-        <div class="account-name">Name</div>
-        <div class="account-remove-btn">Remove</div>
-        <hr style="height: 2px;"/>
-        @if (accounts.Length == 0)
+<div id="account-list">
+    <div class="account-status">Status</div>
+    <div class="account-name">Name</div>
+    <div class="account-remove-btn">Remove</div>
+    <hr style="height: 2px;"/>
+    @if (_indexViewModel.Characters.Count == 0)
+    {
+        <p>
+            <em>No accounts setup yet.</em>
+        </p>
+    }
+    else
+    {
+        @foreach (var character in _indexViewModel.Characters)
         {
-            <p>
-                <em>No accounts setup yet.</em>
-            </p>
+            <CharacterRow Character=character
+                          Status=_characterService.GetCharacterStatus(character.Id)
+                          DeleteCharacterHook=_indexViewModel.RemoveCharacterAsync
+                          RefreshList=RefreshList/>
+            <hr/>
         }
-        else
-        {
-            @foreach (var account in accounts)
-            {
-                <AccountRow Account=account/>
-                <hr/>
-            }
-        }
-    </div>
-}
+    }
+</div>
 
-<img id="eve-login-btn" src="/images/eve-sso-login-black-large.png"/>
+
+<img id="eve-login-btn" src="/images/eve-sso-login-black-large.png" @onclick="StartAuth"/>
 
 
 @code {
-    private Account[] accounts;
-    private readonly string logDirectory = "C:\\Eve";
-
-    protected override async Task OnInitializedAsync()
+    private void RefreshList()
     {
-        accounts = await _characterService.GetAccountList();
+        StateHasChanged();
     }
 
+    private async Task StartAuth()
+    {
+        await _indexViewModel.StartAuthAsync();
+        StateHasChanged();
+    }
 }
