@@ -31,12 +31,12 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullNonRegisteredCharacter_ShouldNotEmitEvent()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Empty(emittedEvents);
@@ -45,13 +45,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitEvent()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Single(emittedEvents);
@@ -60,13 +60,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitCorrectAmount()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Equal(416, emittedEvents[0].Amount);
@@ -75,13 +75,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitCorrectCharacterId()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
@@ -90,13 +90,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitCorrectShip()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Equal("Augoror", emittedEvents[0].Ship);
@@ -105,13 +105,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitCorrectWeapon()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Equal("Medium Remote Armor Repairer II", emittedEvents[0].Weapon);
@@ -120,13 +120,13 @@ public class IncomingHullTests
     [Fact]
     public void RaiseFileReadEvent_IncomingHullWithOverview_ShouldEmitCorrectName()
     {
-        var emittedEvents = new List<IncomingHullEventArgs>();
+        var emittedEvents = new List<IncomingHullEvent>();
 
-        _logParserService.RaiseIncomingHullEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingHull += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleHullIncomingLineWithOverview)));
 
         Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);

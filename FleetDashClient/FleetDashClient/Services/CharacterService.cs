@@ -1,11 +1,16 @@
 using FleetDashClient.Data;
 using FleetDashClient.Models;
+using FleetDashClient.Models.Events;
 using Microsoft.EntityFrameworkCore;
+using Quobject.SocketIoClientDotNet.Client;
 
 namespace FleetDashClient.Services;
 
 public class CharacterService : ICharacterService
 {
+    public event EventHandler<CharacterAddedEventArgs> OnCharacterAdded;
+    public event EventHandler<CharacterRemovedEventArgs> OnCharacterRemoved;
+    
     private readonly DataContext _dbContext;
     
     public CharacterService(DataContext dbContext)
@@ -22,17 +27,25 @@ public class CharacterService : ICharacterService
     {
         _dbContext.Characters.Add(character);
         await _dbContext.SaveChangesAsync();
+
+        var raiseEvent = OnCharacterAdded;
+        if (raiseEvent != null) raiseEvent(this, new CharacterAddedEventArgs(character));
         
         return character;
     }
 
     public async Task RemoveCharacterAsync(string characterId)
     {
-        var character = _dbContext.Characters.Where(x => x.Id == characterId);
+        var character = _dbContext.Characters.FirstOrDefault(x => x.Id == characterId);
+        if (character != null)
+            _dbContext.Characters.Remove(character);
+
         var tokens = _dbContext.Tokens.Where(x => x.CharacterId == characterId);
-        _dbContext.Characters.RemoveRange(character);
         _dbContext.Tokens.RemoveRange(tokens);
 
+        var raiseEvent = OnCharacterRemoved;
+        if (raiseEvent != null) raiseEvent(this, new CharacterRemovedEventArgs(character));
+        
         await _dbContext.SaveChangesAsync();
     }
     

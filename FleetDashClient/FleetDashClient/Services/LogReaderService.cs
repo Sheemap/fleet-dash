@@ -15,7 +15,7 @@ public class LogReaderService : ILogReaderService
         _logDirectory = logDirectory;
     }
 
-    public event EventHandler<LogFileReadEventArgs> RaiseFileReadEvent;
+    public event EventHandler<LogFileReadEventArgs> OnFileRead;
 
     public Task Start()
     {
@@ -36,8 +36,11 @@ public class LogReaderService : ILogReaderService
 
             watcher.Filter = "*.txt";
             watcher.EnableRaisingEvents = true;
-
-            while (!token.IsCancellationRequested) Task.Delay(1);
+            
+            while (!token.IsCancellationRequested)
+            {
+                Thread.Sleep(1000);
+            }
         });
     }
 
@@ -74,8 +77,10 @@ public class LogReaderService : ILogReaderService
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        var raiseEvent = RaiseFileReadEvent;
-        if (raiseEvent != null)
+        var raiseEvent = OnFileRead;
+        if (raiseEvent == null) return;
+
+        try
         {
             var charId = GetCharacterID(e.FullPath);
 
@@ -97,6 +102,13 @@ public class LogReaderService : ILogReaderService
 
             var eventArgs = new LogFileReadEventArgs(charId, readBytes);
             raiseEvent(this, eventArgs);
+        }
+        catch (OverflowException ex)
+        {
+            _logProgress[e.FullPath] = 0;
+        }
+        catch(Exception ex)
+        {
         }
     }
 }

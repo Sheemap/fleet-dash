@@ -31,12 +31,12 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorNonRegisteredCharacter_ShouldNotEmitEvent()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Empty(emittedEvents);
@@ -45,13 +45,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitEvent()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Single(emittedEvents);
@@ -60,13 +60,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitCorrectAmount()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Equal(351, emittedEvents[0].Amount);
@@ -75,13 +75,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitCorrectCharacterId()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
@@ -90,13 +90,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitCorrectShip()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Equal("Augoror", emittedEvents[0].Ship);
@@ -105,13 +105,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitCorrectWeapon()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Equal("Medium Remote Capacitor Transmitter II", emittedEvents[0].Weapon);
@@ -120,13 +120,13 @@ public class OutgoingCapacitorTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingCapacitorWithOverview_ShouldEmitCorrectName()
     {
-        var emittedEvents = new List<OutgoingCapacitorEventArgs>();
+        var emittedEvents = new List<OutgoingCapacitorEvent>();
 
-        _logParserService.RaiseOutgoingCapacitorEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingCapacitor += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleCapacitorOutgoingLineWithOverview)));
 
         Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);

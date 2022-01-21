@@ -9,27 +9,29 @@ namespace FleetDashClient.Services;
 
 public class LogParserService : ILogParserService
 {
+    public List<string> WatchedCharacters => _watchedCharacters.Keys.ToList();
+    
     private readonly Dictionary<string, string?> _watchedCharacters = new();
 
     public LogParserService(ILogReaderService logReaderService)
     {
-        logReaderService.RaiseFileReadEvent += HandleLogFileReadEvent;
+        logReaderService.OnFileRead += HandleLogFileRead;
     }
 
-    public event EventHandler<IncomingDamageEventArgs> RaiseIncomingDamageEvent;
-    public event EventHandler<OutgoingDamageEventArgs> RaiseOutgoingDamageEvent;
-    public event EventHandler<IncomingHullEventArgs> RaiseIncomingHullEvent;
-    public event EventHandler<OutgoingHullEventArgs> RaiseOutgoingHullEvent;
-    public event EventHandler<IncomingShieldEventArgs> RaiseIncomingShieldEvent;
-    public event EventHandler<OutgoingShieldEventArgs> RaiseOutgoingShieldEvent;
-    public event EventHandler<IncomingArmorEventArgs> RaiseIncomingArmorEvent;
-    public event EventHandler<OutgoingArmorEventArgs> RaiseOutgoingArmorEvent;
-    public event EventHandler<IncomingCapacitorEventArgs> RaiseIncomingCapacitorEvent;
-    public event EventHandler<OutgoingCapacitorEventArgs> RaiseOutgoingCapacitorEvent;
-    public event EventHandler<IncomingNeutEventArgs> RaiseIncomingNeutEvent;
-    public event EventHandler<OutgoingNeutEventArgs> RaiseOutgoingNeutEvent;
-    public event EventHandler<IncomingNosEventArgs> RaiseIncomingNosEvent;
-    public event EventHandler<OutgoingNosEventArgs> RaiseOutgoingNosEvent;
+    public event EventHandler<IncomingDamageEvent> OnIncomingDamage;
+    public event EventHandler<OutgoingDamageEvent> OnOutgoingDamage;
+    public event EventHandler<IncomingHullEvent> OnIncomingHull;
+    public event EventHandler<OutgoingHullEvent> OnOutgoingHull;
+    public event EventHandler<IncomingShieldEvent> OnIncomingShield;
+    public event EventHandler<OutgoingShieldEvent> OnOutgoingShield;
+    public event EventHandler<IncomingArmorEvent> OnIncomingArmor;
+    public event EventHandler<OutgoingArmorEvent> OnOutgoingArmor;
+    public event EventHandler<IncomingCapacitorEvent> OnIncomingCapacitor;
+    public event EventHandler<OutgoingCapacitorEvent> OnOutgoingCapacitor;
+    public event EventHandler<IncomingNeutEvent> OnIncomingNeut;
+    public event EventHandler<OutgoingNeutEvent> OnOutgoingNeut;
+    public event EventHandler<IncomingNosEvent> OnIncomingNos;
+    public event EventHandler<OutgoingNosEvent> OnOutgoingNos;
 
     public void StartWatchingCharacter(string characterId, string overviewSettings)
     {
@@ -167,7 +169,7 @@ public class LogParserService : ILogParserService
         return shipLabelRegex.ToString();
     }
 
-    private void HandleLogFileReadEvent(object source, LogFileReadEventArgs e)
+    private void HandleLogFileRead(object source, LogFileReadEventArgs e)
     {
         if (!_watchedCharacters.ContainsKey(e.CharacterId)) return;
 
@@ -206,12 +208,15 @@ public class LogParserService : ILogParserService
     }
 
     private bool FindAndRaiseEvent<T>(EventHandler<T> eventHandler, string constantRegex,
-        Func<string, int, string, string, string, T> argsFactory, string characterId, string logLine)
-        where T : EveLogEvent
+        Func<string, int, string, string, string, string, string, string, T> argsFactory, string characterId,
+        string logLine, bool useOverviewRegex = true)
+        where T : EveLogEventArgs
     {
         if (eventHandler == null) return false;
 
-        var charRegex = _watchedCharacters.GetValueOrDefault(characterId, EnglishRegex.PilotAndWeapon);
+        var charRegex = useOverviewRegex
+            ? _watchedCharacters.GetValueOrDefault(characterId, EnglishRegex.PilotAndWeapon)
+            : EnglishRegex.PilotAndWeapon;
 
         var regex = new Regex(constantRegex + charRegex);
         var match = regex.Match(logLine);
@@ -221,7 +226,10 @@ public class LogParserService : ILogParserService
         var toName = match.Groups.GetValueOrDefault("Pilot")?.Value ?? "Unknown";
         var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
         var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-        var newEvent = argsFactory(characterId, amountReceived, toName, toShip, weapon);
+        var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
+        var corporation = match.Groups.GetValueOrDefault("Corporation")?.Value ?? "Unknown";
+        var alliance = match.Groups.GetValueOrDefault("Alliance")?.Value ?? "Unknown";
+        var newEvent = argsFactory(characterId, amountReceived, toName, toShip, weapon, application, corporation,alliance);
 
         eventHandler(this, newEvent);
         return true;
@@ -229,151 +237,127 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingNos(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingNosEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingNosEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingNosEvent, EnglishRegex.IncomingNos,
+        return FindAndRaiseEvent(OnIncomingNos, EnglishRegex.IncomingNos,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingNos(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingNosEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNosEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingNosEvent, EnglishRegex.OutgoingNos,
+        return FindAndRaiseEvent(OnOutgoingNos, EnglishRegex.OutgoingNos,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingNeutEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingNeutEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingNeutEvent, EnglishRegex.IncomingNeut,
+        return FindAndRaiseEvent(OnIncomingNeut, EnglishRegex.IncomingNeut,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingNeutEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNeutEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingNeutEvent, EnglishRegex.OutgoingNeut,
+        return FindAndRaiseEvent(OnOutgoingNeut, EnglishRegex.OutgoingNeut,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingShield(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingShieldEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingShieldEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingShieldEvent, EnglishRegex.IncomingShield,
+        return FindAndRaiseEvent(OnIncomingShield, EnglishRegex.IncomingShield,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingShield(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingShieldEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingShieldEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingShieldEvent, EnglishRegex.OutgoingShield,
+        return FindAndRaiseEvent(OnOutgoingShield, EnglishRegex.OutgoingShield,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingArmorEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingArmorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingArmorEvent, EnglishRegex.IncomingArmor,
+        return FindAndRaiseEvent(OnIncomingArmor, EnglishRegex.IncomingArmor,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingArmorEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingArmorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingArmorEvent, EnglishRegex.OutgoingArmor,
+        return FindAndRaiseEvent(OnOutgoingArmor, EnglishRegex.OutgoingArmor,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingCapacitorEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingCapacitorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingCapacitorEvent, EnglishRegex.IncomingCapacitor,
+        return FindAndRaiseEvent(OnIncomingCapacitor, EnglishRegex.IncomingCapacitor,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingCapacitorEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingCapacitorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingCapacitorEvent, EnglishRegex.OutgoingCapacitor,
+        return FindAndRaiseEvent(OnOutgoingCapacitor, EnglishRegex.OutgoingCapacitor,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingHull(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new IncomingHullEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingHullEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseIncomingHullEvent, EnglishRegex.IncomingHull,
+        return FindAndRaiseEvent(OnIncomingHull, EnglishRegex.IncomingHull,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseOutgoingHull(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon) =>
-            new OutgoingHullEventArgs(characterId, amount, pilot, ship, weapon);
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingHullEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        return FindAndRaiseEvent(RaiseOutgoingHullEvent, EnglishRegex.OutgoingHull,
+        return FindAndRaiseEvent(OnOutgoingHull, EnglishRegex.OutgoingHull,
             argsBuilder, characterId, logLine);
     }
 
     private bool FindAndRaiseIncomingDamage(string characterId, string logLine)
     {
-        var raiseDamage = RaiseIncomingDamageEvent;
-        if (raiseDamage == null) return false;
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingDamageEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        var regex = new Regex(EnglishRegex.IncomingDamage + EnglishRegex.PilotAndWeapon);
-        var match = regex.Match(logLine);
-        if (!match.Success) return false;
-
-        var amountReceived = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-        var fromName = match.Groups.GetValueOrDefault("Pilot")?.Value ?? "Unknown";
-        var fromShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-        var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-        var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
-        var newEvent = new IncomingDamageEventArgs(characterId, amountReceived, fromName, fromShip,
-            weapon, application);
-
-        raiseDamage(this, newEvent);
-        return true;
+        return FindAndRaiseEvent(OnIncomingDamage, EnglishRegex.IncomingDamage,
+            argsBuilder, characterId, logLine, false);
     }
 
     private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
     {
-        var raiseDamage = RaiseOutgoingDamageEvent;
-        if (raiseDamage == null) return false;
+        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingDamageEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
-        var regex = new Regex(EnglishRegex.OutgoingDamage + EnglishRegex.PilotAndWeapon);
-        var match = regex.Match(logLine);
-        if (!match.Success) return false;
-
-        var amount = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-        var toName = match.Groups.GetValueOrDefault("Pilot")?.Value ?? "Unknown";
-        var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-        var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-        var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
-        var newEvent = new OutgoingDamageEventArgs(characterId, amount, toName, toShip, weapon,
-            application);
-
-        raiseDamage(this, newEvent);
-        return true;
+        return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
+            argsBuilder, characterId, logLine, false);
     }
 }

@@ -30,19 +30,11 @@
     }
 </div>
 
-
-<img id="eve-login-btn" src="/images/eve-sso-login-black-large.png" @onclick="StartAuth"/>
-
+<EveLogin RefreshList="RefreshList"/>
 
 @code {
     private void RefreshList()
     {
-        StateHasChanged();
-    }
-
-    private async Task StartAuth()
-    {
-        await _indexViewModel.StartAuthAsync();
         StateHasChanged();
     }
 }

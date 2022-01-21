@@ -29,6 +29,7 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<IndexViewModel>();
 builder.Services.AddScoped<LogViewModel>();
+builder.Services.AddScoped<EveLoginViewModel>();
 
 builder.Services.AddHostedService<WorkerService>();
 

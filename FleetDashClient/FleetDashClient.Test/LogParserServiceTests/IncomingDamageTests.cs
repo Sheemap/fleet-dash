@@ -25,12 +25,12 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamageNonRegisteredCharacter_ShouldNotEmitEvent()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Empty(emittedEvents);
@@ -39,14 +39,14 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitIncomingDamageEvent()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Single(emittedEvents);
@@ -55,13 +55,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectCharacterID()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
@@ -70,13 +70,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectAmount()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal(164, emittedEvents[0].Amount);
@@ -85,13 +85,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectName()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
@@ -100,13 +100,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectShip()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal("Harbinger", emittedEvents[0].Ship);
@@ -115,13 +115,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectWeapon()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal("Focused Medium Beam Laser II", emittedEvents[0].Weapon);
@@ -130,13 +130,13 @@ public class IncomingDamageTests
     [Fact]
     public void RaiseFileReadEvent_IncomingDamage_ShouldEmitCorrectApplication()
     {
-        var emittedEvents = new List<IncomingDamageEventArgs>();
+        var emittedEvents = new List<IncomingDamageEvent>();
 
-        _logParserService.RaiseIncomingDamageEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnIncomingDamage += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", null);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageIncomingLine)));
 
         Assert.Equal("Penetrates", emittedEvents[0].Application);

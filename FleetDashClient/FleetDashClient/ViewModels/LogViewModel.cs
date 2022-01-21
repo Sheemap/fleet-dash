@@ -2,15 +2,21 @@
 using ElectronNET.API;
 using ElectronNET.API.Entities;
 using FleetDashClient.Data;
+using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 
 namespace FleetDashClient.ViewModels;
 
 public class LogViewModel
+
 {
+    public event EventHandler<PathUpdatedEventArgs> OnLogDirectoryUpdated;
+    public event EventHandler<PathUpdatedEventArgs> OnOverviewFileUpdated;
+    
+
     public string LogDirectory { get; set; }
     public string? Overview { get; set; }
-
+    
     private readonly DataContext _dbContext;
 
     public LogViewModel(DataContext dbContext)
@@ -52,6 +58,10 @@ public class LogViewModel
             var config = _dbContext.Configurations.First();
             config.LogDirectory = LogDirectory;
             await _dbContext.SaveChangesAsync();
+
+            var raiseEvent = OnLogDirectoryUpdated;
+            if (raiseEvent != null)
+                raiseEvent(this, new PathUpdatedEventArgs(LogDirectory));
         }
     }
 
@@ -71,6 +81,10 @@ public class LogViewModel
             var config = _dbContext.Configurations.First();
             config.Overview = file[0];
             await _dbContext.SaveChangesAsync();
+            
+            var raiseEvent = OnOverviewFileUpdated;
+            if (raiseEvent != null)
+                raiseEvent(this, new PathUpdatedEventArgs(file[0]));
         }
     }
 }

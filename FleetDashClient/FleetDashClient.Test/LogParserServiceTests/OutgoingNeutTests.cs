@@ -31,12 +31,12 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutNonRegisteredCharacter_ShouldNotEmitEvent()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Empty(emittedEvents);
@@ -45,13 +45,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitEvent()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Single(emittedEvents);
@@ -60,13 +60,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitCorrectAmount()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Equal(44, emittedEvents[0].Amount);
@@ -75,13 +75,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitCorrectCharacterId()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Equal("123", emittedEvents[0].CharacterId);
@@ -90,13 +90,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitCorrectShip()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Equal("Vedmak", emittedEvents[0].Ship);
@@ -105,13 +105,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitCorrectWeapon()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Equal("Medium Energy Neutralizer II", emittedEvents[0].Weapon);
@@ -120,13 +120,13 @@ public class OutgoingNeutTests
     [Fact]
     public void RaiseFileReadEvent_OutgoingNeutWithOverview_ShouldEmitCorrectName()
     {
-        var emittedEvents = new List<OutgoingNeutEventArgs>();
+        var emittedEvents = new List<OutgoingNeutEvent>();
 
-        _logParserService.RaiseOutgoingNeutEvent += (_, e) => emittedEvents.Add(e);
+        _logParserService.OnOutgoingNeut += (_, e) => emittedEvents.Add(e);
         _logParserService.StartWatchingCharacter("123", _overviewSettings);
 
         // Emit the event
-        _logReaderMock.Raise(x => x.RaiseFileReadEvent += null,
+        _logReaderMock.Raise(x => x.OnFileRead += null,
             new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleNeutOutgoingLineWithOverview)));
 
         Assert.Equal("Anonymous Eve Player", emittedEvents[0].Pilot);
