@@ -9,6 +9,7 @@ public class WorkerService : BackgroundService
 {
     private ILogParserService LogParserService { get; set; }
     private ILogReaderService LogReaderService { get; set; }
+    private GrpcLogShipper LogShipper { get; set; }
     
     private readonly IServiceProvider _serviceProvider;
 
@@ -64,6 +65,7 @@ public class WorkerService : BackgroundService
         var config = _dbContext.Configurations.First();
         LogReaderService = new LogReaderService(config.LogDirectory);
         LogParserService = new LogParserService(LogReaderService);
+        LogShipper = new GrpcLogShipper(LogParserService);
         
         var characters = _dbContext.Characters.ToList();
         var overviewYaml = GetOverviewYaml();
