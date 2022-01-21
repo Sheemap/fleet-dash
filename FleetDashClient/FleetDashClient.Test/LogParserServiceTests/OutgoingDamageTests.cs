@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
@@ -20,6 +21,22 @@ public class OutgoingDamageTests
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
+    }
+    
+    [Fact]
+    public void RaiseFileReadEvent_EmitCorrectTimestamp()
+    {
+        var emittedEvents = new List<OutgoingDamageEvent>();
+
+        _logParserService.OnOutgoingDamage += (_, e) => emittedEvents.Add(e);
+        _logParserService.StartWatchingCharacter("123", null);
+
+        // Emit the event
+        _logReaderMock.Raise(x => x.OnFileRead += null,
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleDamageOutgoingLine)));
+
+        var expected = new DateTimeOffset(2022, 01, 15, 23, 15, 57, TimeSpan.Zero);
+        Assert.Equal(expected, emittedEvents[0].Timestamp);
     }
 
     [Fact]

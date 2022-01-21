@@ -2,6 +2,8 @@
 
 public static class EnglishRegex
 {
+    public const string Timestamp = @"\[ (?<Timestamp>\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2}) \] ";
+    
     public const string PilotAndWeapon =
         @"(?:.*ffffffff>(?<Pilot>[^\(\)<>]*)\[(?<Tag>.*)\](?:.*\((?<Ship>.*)\)<|<)/b.*> \-(?: (?<Weapon>.*?)(?: \-|<)|.*)) (?<Application>[A-z]*$)";
 

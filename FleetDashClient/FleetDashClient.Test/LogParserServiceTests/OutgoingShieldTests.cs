@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using FleetDashClient.Models.Events;
@@ -26,6 +27,22 @@ public class OutgoingShieldTests
 
         using var streamReader = new StreamReader(@"TestData\ValidOverview.yaml");
         _overviewSettings = streamReader.ReadToEnd();
+    }
+    
+    [Fact]
+    public void RaiseFileReadEvent_EmitCorrectTimestamp()
+    {
+        var emittedEvents = new List<OutgoingShieldEvent>();
+
+        _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
+        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+
+        // Emit the event
+        _logReaderMock.Raise(x => x.OnFileRead += null,
+            new LogFileReadEventArgs("123", Encoding.UTF8.GetBytes(SingleShieldOutgoingLineWithOverview)));
+
+        var expected = new DateTimeOffset(2022, 01, 17, 20, 28, 44, TimeSpan.Zero);
+        Assert.Equal(expected, emittedEvents[0].Timestamp);
     }
 
     [Fact]

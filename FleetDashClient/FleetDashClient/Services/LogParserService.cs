@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using FleetDashClient.Constants;
 using FleetDashClient.Models.Events;
@@ -208,7 +209,7 @@ public class LogParserService : ILogParserService
     }
 
     private bool FindAndRaiseEvent<T>(EventHandler<T> eventHandler, string constantRegex,
-        Func<string, int, string, string, string, string, string, string, T> argsFactory, string characterId,
+        Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory, string characterId,
         string logLine, bool useOverviewRegex = true)
         where T : EveLogEventArgs
     {
@@ -218,10 +219,18 @@ public class LogParserService : ILogParserService
             ? _watchedCharacters.GetValueOrDefault(characterId, EnglishRegex.PilotAndWeapon)
             : EnglishRegex.PilotAndWeapon;
 
-        var regex = new Regex(constantRegex + charRegex);
+        var regex = new Regex(EnglishRegex.Timestamp + constantRegex + charRegex);
         var match = regex.Match(logLine);
         if (!match.Success) return false;
-
+        
+        var timestampStr = match.Groups.GetValueOrDefault("Timestamp")?.Value ?? "Unknown";
+        if (!DateTime.TryParseExact(timestampStr, "yyyy.MM.dd HH:mm:ss", null,
+                DateTimeStyles.AssumeUniversal, out var timestamp))
+        {
+            timestamp = DateTime.UtcNow;
+        }
+        
+        
         var amountReceived = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
         var toName = match.Groups.GetValueOrDefault("Pilot")?.Value ?? "Unknown";
         var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
@@ -229,7 +238,7 @@ public class LogParserService : ILogParserService
         var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
         var corporation = match.Groups.GetValueOrDefault("Corporation")?.Value ?? "Unknown";
         var alliance = match.Groups.GetValueOrDefault("Alliance")?.Value ?? "Unknown";
-        var newEvent = argsFactory(characterId, amountReceived, toName, toShip, weapon, application, corporation,alliance);
+        var newEvent = argsFactory(timestamp, characterId, amountReceived, toName, toShip, weapon, application, corporation,alliance);
 
         eventHandler(this, newEvent);
         return true;
@@ -237,8 +246,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingNos(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingNosEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingNosEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingNos, EnglishRegex.IncomingNos,
             argsBuilder, characterId, logLine);
@@ -246,8 +255,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingNos(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingNosEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNosEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingNos, EnglishRegex.OutgoingNos,
             argsBuilder, characterId, logLine);
@@ -255,8 +264,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingNeutEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingNeutEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingNeut, EnglishRegex.IncomingNeut,
             argsBuilder, characterId, logLine);
@@ -264,8 +273,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingNeutEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNeutEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingNeut, EnglishRegex.OutgoingNeut,
             argsBuilder, characterId, logLine);
@@ -273,8 +282,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingShield(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingShieldEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingShieldEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingShield, EnglishRegex.IncomingShield,
             argsBuilder, characterId, logLine);
@@ -282,8 +291,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingShield(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingShieldEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingShieldEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingShield, EnglishRegex.OutgoingShield,
             argsBuilder, characterId, logLine);
@@ -291,8 +300,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingArmorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingArmorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingArmor, EnglishRegex.IncomingArmor,
             argsBuilder, characterId, logLine);
@@ -300,8 +309,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingArmorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingArmorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingArmor, EnglishRegex.OutgoingArmor,
             argsBuilder, characterId, logLine);
@@ -309,8 +318,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingCapacitorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingCapacitorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingCapacitor, EnglishRegex.IncomingCapacitor,
             argsBuilder, characterId, logLine);
@@ -318,8 +327,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingCapacitorEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingCapacitorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingCapacitor, EnglishRegex.OutgoingCapacitor,
             argsBuilder, characterId, logLine);
@@ -327,8 +336,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingHull(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingHullEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingHullEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingHull, EnglishRegex.IncomingHull,
             argsBuilder, characterId, logLine);
@@ -336,8 +345,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingHull(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingHullEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingHullEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingHull, EnglishRegex.OutgoingHull,
             argsBuilder, characterId, logLine);
@@ -345,8 +354,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseIncomingDamage(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingDamageEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingDamage, EnglishRegex.IncomingDamage,
             argsBuilder, characterId, logLine, false);
@@ -354,8 +363,8 @@ public class LogParserService : ILogParserService
 
     private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
     {
-        var argsBuilder = (string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingDamageEvent(characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
             argsBuilder, characterId, logLine, false);

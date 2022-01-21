@@ -2,9 +2,9 @@
 
 public class IncomingHullEvent : EveLogEventArgs
 {
-    public IncomingHullEvent(string characterId, int amount, string pilot, string ship, string weapon,
+    public IncomingHullEvent(DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon,
         string application, string corporation, string alliance) :
-        base(characterId, amount, pilot, ship, weapon, application, corporation, alliance)
+        base(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance)
     {
     }
 }

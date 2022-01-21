@@ -2,9 +2,10 @@
 
 public class EveLogEventArgs : EventArgs
 {
-    public EveLogEventArgs(string characterId, int amount, string pilot, string ship, string weapon, string application,
-        string corporation, string alliance)
+    protected EveLogEventArgs(DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship,
+        string weapon, string application, string corporation, string alliance)
     {
+        Timestamp = timestamp;
         CharacterId = characterId;
         Amount = amount;
         Pilot = pilot;
@@ -14,7 +15,8 @@ public class EveLogEventArgs : EventArgs
         Corporation = corporation;
         Alliance = alliance;
     }
-
+    
+    public DateTimeOffset Timestamp { get; }
     public string CharacterId { get; }
     public int Amount { get; }
     public string Pilot { get; }

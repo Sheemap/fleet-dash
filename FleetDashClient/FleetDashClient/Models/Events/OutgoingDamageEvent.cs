@@ -2,9 +2,9 @@
 
 public class OutgoingDamageEvent : EveLogEventArgs
 {
-    public OutgoingDamageEvent(string characterId, int amount, string pilot, string ship, string weapon,
+    public OutgoingDamageEvent(DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon,
         string application, string corporation, string alliance) :
-        base(characterId, amount, pilot, ship, weapon, application, corporation, alliance)
+        base(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance)
     {
     }
 }
