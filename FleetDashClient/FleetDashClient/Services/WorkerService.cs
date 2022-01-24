@@ -65,7 +65,7 @@ public class WorkerService : BackgroundService
         var config = _dbContext.Configurations.First();
         LogReaderService = new LogReaderService(config.LogDirectory);
         LogParserService = new LogParserService(LogReaderService);
-        LogShipper = new GrpcLogShipper(LogParserService);
+        LogShipper = new GrpcLogShipper(LogParserService, _dbContext);
         
         var characters = _dbContext.Characters.ToList();
         var overviewYaml = GetOverviewYaml();

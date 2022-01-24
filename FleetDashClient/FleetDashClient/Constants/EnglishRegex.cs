@@ -5,7 +5,7 @@ public static class EnglishRegex
     public const string Timestamp = @"\[ (?<Timestamp>\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2}) \] ";
     
     public const string PilotAndWeapon =
-        @"(?:.*ffffffff>(?<Pilot>[^\(\)<>]*)\[(?<Tag>.*)\](?:.*\((?<Ship>.*)\)<|<)/b.*> \-(?: (?<Weapon>.*?)(?: \-|<)|.*)) (?<Application>[A-z]*$)";
+        @"(?:.*ffffffff>(?<Pilot>[^\(\)<>]*)?(\[(?<Tag>.*)\])(?:.*\((?<Ship>.*)\)<|<)/b.*> \-(?: (?<Weapon>.*?)(?: \-|<)|.*)) (?<Application>[A-z]*$)";
 
     public const string IncomingDamage = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*>from<";
     public const string OutgoingDamage = @"\(combat\) <.*?><b>(?<Amount>[0-9]+).*>to<";
