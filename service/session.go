@@ -99,7 +99,7 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 		return nil, err
 	}
 	if fleet == nil {
-		return nil, ErrNotInFleet
+		return nil, nil
 	}
 	strFleetID := strconv.FormatInt(*fleet.FleetID, 10)
 	fleetSession, err := s.repo.GetSessionByFleet(strFleetID)

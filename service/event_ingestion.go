@@ -2,6 +2,7 @@ package service
 
 import (
 	"fleet-dash-core/data"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -34,6 +35,7 @@ func NewEventService(r data.Repository) EventService {
 
 func (s *eventService) PersistEveLogEvent(sessionID string, e EveLogEvent) error {
 	event := data.Event{
+		BaseModel: data.BaseModel{ID: uuid.New().String()},
 		SessionID: sessionID,
 		Timestamp: e.Timestamp,
 		Type: e.Type,

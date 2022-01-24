@@ -35,10 +35,10 @@ func main() {
 
 	repository := data.NewRepository()
 
-	eventService := service.NewEventService()
+	eventService := service.NewEventService(repository)
 	sessionService := service.NewSessionService(repository)
 
-	eventEndpoints := endpoints.MakeGrpcEndpoints(eventService)
+	eventEndpoints := endpoints.MakeGrpcEndpoints(eventService, sessionService)
 	httpEndpoints := endpoints.MakeHttpEndpoints(sessionService)
 
 	jwtValidator := utilities.NewValidator()
