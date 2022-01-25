@@ -1,6 +1,6 @@
-﻿using FleetDashClient.Models.Events;
+﻿using EveLogParser.Models.Events;
 
-namespace FleetDashClient.Services;
+namespace EveLogParser;
 
 public interface ILogReaderService
 {

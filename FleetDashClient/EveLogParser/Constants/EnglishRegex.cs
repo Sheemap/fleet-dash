@@ -1,4 +1,4 @@
-﻿namespace FleetDashClient.Constants;
+﻿namespace EveLogParser.Constants;
 
 public static class EnglishRegex
 {

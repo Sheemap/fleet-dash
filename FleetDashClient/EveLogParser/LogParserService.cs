@@ -1,22 +1,26 @@
 ﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using FleetDashClient.Constants;
-using FleetDashClient.Models.Events;
+using EveLogParser.Builder;
+using EveLogParser.Constants;
+using EveLogParser.Models.Events;
+using Microsoft.Extensions.Options;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
-namespace FleetDashClient.Services;
+namespace EveLogParser;
 
 public class LogParserService : ILogParserService
 {
-    public List<string> WatchedCharacters => _watchedCharacters.Keys.ToList();
-    
-    private readonly Dictionary<string, string?> _watchedCharacters = new();
+    private readonly List<string> _watchedCharacters = new();
+    private string? _overviewRegex;
 
-    public LogParserService(ILogReaderService logReaderService)
+    public LogParserService(ILogReaderService logReaderService, IOptionsMonitor<EveLogParserOptions> options)
     {
         logReaderService.OnFileRead += HandleLogFileRead;
+        
+        UpdateRegex(options.CurrentValue);
+        options.OnChange(UpdateRegex);
     }
 
     public event EventHandler<IncomingDamageEvent> OnIncomingDamage;
@@ -34,29 +38,36 @@ public class LogParserService : ILogParserService
     public event EventHandler<IncomingNosEvent> OnIncomingNos;
     public event EventHandler<OutgoingNosEvent> OnOutgoingNos;
 
-    public void StartWatchingCharacter(string characterId, string overviewSettings)
+    private void UpdateRegex(EveLogParserOptions options)
     {
-        if (string.IsNullOrWhiteSpace(overviewSettings))
+        if (string.IsNullOrWhiteSpace(options.OverviewFile))
         {
-            _watchedCharacters[characterId] = null;
+            _overviewRegex = null;
             return;
         }
-
-        // Parse overviewSettings as YAML
+        
+        using var reader = new StreamReader(options.OverviewFile);
+        var overviewYaml = reader.ReadToEnd();
+        
         var deserializer = new Deserializer();
-        var settings = deserializer.Deserialize<Dictionary<string, object>>(overviewSettings);
-
+        var settings = deserializer.Deserialize<Dictionary<string, object>>(overviewYaml);
+        
         try
         {
             var shipLabels = ExtractShipLabelSettings(settings);
             var shipLabelRegex = BuildOverviewRegex(shipLabels);
 
-            _watchedCharacters[characterId] = shipLabelRegex;
+            _overviewRegex = shipLabelRegex;
         }
         catch (Exception ex)
         {
             throw new YamlException("Error parsing overview", ex);
         }
+    }
+    
+    public void StartWatchingCharacter(string characterId)
+    {
+        _watchedCharacters.Add(characterId);
     }
 
     public void StopWatchingCharacter(string characterId)
@@ -172,7 +183,7 @@ public class LogParserService : ILogParserService
 
     private void HandleLogFileRead(object source, LogFileReadEventArgs e)
     {
-        if (!_watchedCharacters.ContainsKey(e.CharacterId)) return;
+        if (!_watchedCharacters.Contains(e.CharacterId)) return;
 
         var line = Encoding.UTF8.GetString(e.Content);
 
@@ -215,8 +226,8 @@ public class LogParserService : ILogParserService
     {
         if (eventHandler == null) return false;
 
-        var charRegex = useOverviewRegex
-            ? _watchedCharacters.GetValueOrDefault(characterId, EnglishRegex.PilotAndWeapon)
+        var charRegex = useOverviewRegex && _overviewRegex != null
+            ? _overviewRegex
             : EnglishRegex.PilotAndWeapon;
 
         var regex = new Regex(EnglishRegex.Timestamp + constantRegex + charRegex);

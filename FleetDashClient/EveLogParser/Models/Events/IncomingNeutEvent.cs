@@ -1,4 +1,4 @@
-﻿namespace FleetDashClient.Models.Events;
+﻿namespace EveLogParser.Models.Events;
 
 public class IncomingNeutEvent : EveLogEventArgs
 {

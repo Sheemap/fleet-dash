@@ -1,6 +1,6 @@
-﻿using FleetDashClient.Models.Events;
+﻿using EveLogParser.Models.Events;
 
-namespace FleetDashClient.Services;
+namespace EveLogParser;
 
 public interface ILogParserService
 {
@@ -18,7 +18,6 @@ public interface ILogParserService
     event EventHandler<OutgoingNeutEvent> OnOutgoingNeut;
     event EventHandler<IncomingNosEvent> OnIncomingNos;
     event EventHandler<OutgoingNosEvent> OnOutgoingNos;
-    List<string> WatchedCharacters { get; }
-    void StartWatchingCharacter(string characterId, string overviewSettings);
+    void StartWatchingCharacter(string characterId);
     void StopWatchingCharacter(string characterId);
 }

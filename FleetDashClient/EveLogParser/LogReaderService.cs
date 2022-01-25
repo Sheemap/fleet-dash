@@ -1,30 +1,47 @@
-﻿using FleetDashClient.Models.Events;
+﻿using System.Runtime.Serialization;
+using EveLogParser.Builder;
+using EveLogParser.Models.Events;
+using Microsoft.Extensions.Options;
 
-namespace FleetDashClient.Services;
+namespace EveLogParser;
 
-public class LogReaderService : ILogReaderService
+internal class LogReaderService : ILogReaderService
 {
     private readonly Dictionary<string, string> _characterLogMap = new();
     private readonly Dictionary<string, int> _logProgress = new();
-    private readonly string _logDirectory;
-    private CancellationTokenSource cancellationTokenSource;
-
-
-    public LogReaderService(string logDirectory)
+    private string _logDirectory;
+    private CancellationTokenSource? _cancellationTokenSource;
+    
+    public LogReaderService(IOptionsMonitor<EveLogParserOptions> options)
     {
-        _logDirectory = logDirectory;
+        _logDirectory = options.CurrentValue.LogDirectory;
+        options.OnChange(ReloadConfig);
     }
 
     public event EventHandler<LogFileReadEventArgs> OnFileRead;
 
+    private void ReloadConfig(EveLogParserOptions options)
+    {
+        // Log directory needs to have changed to proceed
+        if (options.LogDirectory == _logDirectory) return;
+
+        _logDirectory = options.LogDirectory;
+
+        // Only restart if currently running
+        if (_cancellationTokenSource == null) return;
+        
+        Stop();
+        Start();
+    }
+
     public Task Start()
     {
-        if (cancellationTokenSource != null)
+        if (_cancellationTokenSource != null)
             throw new InvalidOperationException("Log reading already in progress. Cannot start the reader twice.");
 
-        cancellationTokenSource = new CancellationTokenSource();
+        _cancellationTokenSource = new CancellationTokenSource();
 
-        var token = cancellationTokenSource.Token;
+        var token = _cancellationTokenSource.Token;
 
         return Task.Run(() =>
         {
@@ -46,9 +63,9 @@ public class LogReaderService : ILogReaderService
 
     public void Stop()
     {
-        if (cancellationTokenSource == null) throw new InvalidOperationException("Log reading is already stopped.");
+        if (_cancellationTokenSource == null) throw new InvalidOperationException("Log reading is already stopped.");
 
-        cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Cancel();
     }
 
     private string GetCharacterID(string logFilePath)
