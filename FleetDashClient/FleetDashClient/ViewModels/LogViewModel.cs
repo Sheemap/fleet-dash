@@ -28,17 +28,17 @@ public class LogViewModel
 
     private void InitializeLogSettings()
     {
-        var config = _dbContext.Configurations.FirstOrDefault();
-
-        if (config != null && !string.IsNullOrWhiteSpace(config.LogDirectory))
-        {
-            LogDirectory = config.LogDirectory;
-        }
-
-        if (config != null && !string.IsNullOrWhiteSpace(config.Overview))
-        {
-            Overview = Path.GetFileName(config.Overview);
-        }
+        // var config = _dbContext.Configurations.FirstOrDefault();
+        //
+        // if (config != null && !string.IsNullOrWhiteSpace(config.LogDirectory))
+        // {
+        //     LogDirectory = config.LogDirectory;
+        // }
+        //
+        // if (config != null && !string.IsNullOrWhiteSpace(config.Overview))
+        // {
+        //     Overview = Path.GetFileName(config.Overview);
+        // }
     }
 
 
@@ -55,13 +55,13 @@ public class LogViewModel
         if (folder.Length > 0)
         {
             LogDirectory = folder[0];
-            var config = _dbContext.Configurations.First();
-            config.LogDirectory = LogDirectory;
-            await _dbContext.SaveChangesAsync();
-
-            var raiseEvent = OnLogDirectoryUpdated;
-            if (raiseEvent != null)
-                raiseEvent(this, new PathUpdatedEventArgs(LogDirectory));
+            // var config = _dbContext.Configurations.First();
+            // config.LogDirectory = LogDirectory;
+            // await _dbContext.SaveChangesAsync();
+            //
+            // var raiseEvent = OnLogDirectoryUpdated;
+            // if (raiseEvent != null)
+            //     raiseEvent(this, new PathUpdatedEventArgs(LogDirectory));
         }
     }
 
@@ -78,13 +78,13 @@ public class LogViewModel
         if (file.Length > 0)
         {
             Overview = Path.GetFileName(file[0]);
-            var config = _dbContext.Configurations.First();
-            config.Overview = file[0];
-            await _dbContext.SaveChangesAsync();
-            
-            var raiseEvent = OnOverviewFileUpdated;
-            if (raiseEvent != null)
-                raiseEvent(this, new PathUpdatedEventArgs(file[0]));
+            // var config = _dbContext.Configurations.First();
+            // config.Overview = file[0];
+            // await _dbContext.SaveChangesAsync();
+            //
+            // var raiseEvent = OnOverviewFileUpdated;
+            // if (raiseEvent != null)
+            //     raiseEvent(this, new PathUpdatedEventArgs(file[0]));
         }
     }
 }

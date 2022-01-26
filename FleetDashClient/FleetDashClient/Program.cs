@@ -1,7 +1,8 @@
 using ElectronNET.API;
+using EveLogParser.Builder;
 using FleetDashClient;
+using FleetDashClient.Configuration;
 using FleetDashClient.Data;
-using FleetDashClient.Models;
 using FleetDashClient.Services;
 using FleetDashClient.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +22,18 @@ if (!Directory.Exists(location))
     Directory.CreateDirectory(location);
 }
 
+var configFileLocation = Path.Combine(location, "config.json");
+JsonConfigurationManager.EnsureConfigFileExists(configFileLocation);
+builder.Configuration.AddJsonFile(configFileLocation, false, true);
+
 var dbFileLocation = Path.Combine(location, "fleetdash.db");
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite($"Data Source={dbFileLocation}"));
 
+builder.Services.AddEveLogParser(builder.Configuration);
+
+builder.Services.AddScoped<JsonConfigurationManager>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<IndexViewModel>();
 builder.Services.AddScoped<LogViewModel>();
@@ -43,29 +51,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+if (HybridSupport.IsElectronActive) ElectronBootstrap.Bootstrap(builder.Configuration);
 
-// Seed DB and bootstrap Electron
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-    var config = db.Configurations.FirstOrDefault();
-    if (config == null)
-    {
-        config = new Configuration
-        {
-            WindowHeight = 800,
-            WindowWidth = 600,
-            WindowPositionX = 0,
-            WindowPositionY = 0,
-            LogDirectory = Utilities.GetDefaultLogDirectory(),
-            Overview = null,
-        };
-        db.Configurations.Add(config);
-        db.SaveChanges();
-    }
-    
-    if (HybridSupport.IsElectronActive)  ElectronBootstrap.Bootstrap(config);
-}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

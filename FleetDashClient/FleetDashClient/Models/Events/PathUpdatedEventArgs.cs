@@ -1,4 +1,4 @@
-﻿namespace EveLogParser.Models.Events;
+﻿namespace FleetDashClient.Models.Events;
 
 public class PathUpdatedEventArgs : EventArgs
 {

@@ -28,37 +28,7 @@ namespace FleetDashClient.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Characters");
-                });
-
-            modelBuilder.Entity("FleetDashClient.Models.Configuration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("LogDirectory")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Overview")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("WindowHeight")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("WindowPositionX")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("WindowPositionY")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("WindowWidth")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Configurations");
+                    b.ToTable("Characters", (string)null);
                 });
 
             modelBuilder.Entity("FleetDashClient.Models.Token", b =>
@@ -87,7 +57,7 @@ namespace FleetDashClient.Data.Migrations
 
                     b.HasIndex("ExpiresAt");
 
-                    b.ToTable("Tokens");
+                    b.ToTable("Tokens", (string)null);
                 });
 
             modelBuilder.Entity("FleetDashClient.Models.Token", b =>

@@ -34,4 +34,7 @@
     <ItemGroup>
         <Protobuf Include="**/*.proto" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\EveLogParser\EveLogParser.csproj" />
+    </ItemGroup>
 </Project>

@@ -40,13 +40,13 @@ public class LogParserService : ILogParserService
 
     private void UpdateRegex(EveLogParserOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.OverviewFile))
+        if (string.IsNullOrWhiteSpace(options.OverviewPath))
         {
             _overviewRegex = null;
             return;
         }
         
-        using var reader = new StreamReader(options.OverviewFile);
+        using var reader = new StreamReader(options.OverviewPath);
         var overviewYaml = reader.ReadToEnd();
         
         var deserializer = new Deserializer();

@@ -7,14 +7,16 @@ namespace FleetDashClient;
 public class ElectronBootstrap
 {
     
-    public static async void Bootstrap(Configuration config)
+    public static async void Bootstrap(IConfiguration configuration)
     {
+        var config = configuration.Get<Models.Configuration>();
+        
         var browserWindow = await Electron.WindowManager.CreateWindowAsync(new BrowserWindowOptions
         {
-            Width = config.WindowWidth,
-            Height = config.WindowHeight,
-            X = config.WindowPositionX,
-            Y = config.WindowPositionY,
+            Width = config.WindowWidth ?? default,
+            Height = config.WindowHeight ?? default,
+            X = config.WindowX ?? default,
+            Y = config.WindowY ?? default,
             Show = false,
         });
         

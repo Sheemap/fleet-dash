@@ -11,7 +11,6 @@ public class DataContext : DbContext
     
     public DbSet<Character> Characters { get; set; }
     public DbSet<Token> Tokens { get; set; }
-    public DbSet<Configuration> Configurations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,10 +26,6 @@ public class DataContext : DbContext
             x.HasKey(y => new { y.CharacterId, y.AccessToken }));
         modelBuilder.Entity<Token>(x =>
             x.HasIndex(y => y.ExpiresAt));
-
-        // No key is really needed here, but a primary key is required for the database to work
-        modelBuilder.Entity<Configuration>(x =>
-            x.HasKey(y => y.Id));
 
         base.OnModelCreating(modelBuilder);
     }

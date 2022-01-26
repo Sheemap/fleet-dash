@@ -1,4 +1,6 @@
-﻿using FleetDashClient.Data;
+﻿using EveLogParser;
+using EveLogParser.Models.Events;
+using FleetDashClient.Data;
 using FleetDashClient.Models;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Protobuf;
