@@ -38,7 +38,7 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterDI(IServiceCollection services)
     {
-        services.AddSingleton<ILogReaderService, LogReaderService>();
-        services.AddSingleton<ILogParserService, LogParserService>();
+        services.AddScoped<ILogReaderService, LogReaderService>();
+        services.AddScoped<ILogParserService, LogParserService>();
     }
 }

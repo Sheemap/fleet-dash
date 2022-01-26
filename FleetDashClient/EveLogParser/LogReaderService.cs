@@ -5,9 +5,9 @@ using Microsoft.Extensions.Options;
 
 namespace EveLogParser;
 
-internal class LogReaderService : ILogReaderService
+internal class LogReaderService : ILogReaderService, IDisposable
 {
-    private readonly Dictionary<string, string> _characterLogMap = new();
+    private readonly Dictionary<string, string?> _characterLogMap = new();
     private readonly Dictionary<string, int> _logProgress = new();
     private string _logDirectory;
     private CancellationTokenSource? _cancellationTokenSource;
@@ -18,7 +18,7 @@ internal class LogReaderService : ILogReaderService
         options.OnChange(ReloadConfig);
     }
 
-    public event EventHandler<LogFileReadEventArgs> OnFileRead;
+    public event EventHandler<LogFileReadEventArgs>? OnFileRead;
 
     private void ReloadConfig(EveLogParserOptions options)
     {
@@ -66,11 +66,12 @@ internal class LogReaderService : ILogReaderService
         if (_cancellationTokenSource == null) throw new InvalidOperationException("Log reading is already stopped.");
 
         _cancellationTokenSource.Cancel();
+        _cancellationTokenSource = null;
     }
 
-    private string GetCharacterID(string logFilePath)
+    private string? GetCharacterId(string logFilePath)
     {
-        string charId;
+        string? charId;
 
         var cached = _characterLogMap.ContainsKey(logFilePath);
         if (!cached)
@@ -78,10 +79,7 @@ internal class LogReaderService : ILogReaderService
             var logFileName = new FileInfo(logFilePath).Name;
 
             var fileNameParts = logFileName.Split('_');
-            if (fileNameParts.Length == 3)
-                charId = fileNameParts[2].Replace(".txt", "");
-            else
-                charId = null;
+            charId = fileNameParts.Length == 3 ? fileNameParts[2].Replace(".txt", "") : null;
             _characterLogMap.Add(logFilePath, charId);
         }
         else
@@ -99,7 +97,7 @@ internal class LogReaderService : ILogReaderService
 
         try
         {
-            var charId = GetCharacterID(e.FullPath);
+            var charId = GetCharacterId(e.FullPath);
 
             if (charId == null) return;
 
@@ -127,5 +125,10 @@ internal class LogReaderService : ILogReaderService
         catch(Exception ex)
         {
         }
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Dispose();
     }
 }

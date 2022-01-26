@@ -10,33 +10,39 @@ using YamlDotNet.Serialization;
 
 namespace EveLogParser;
 
-public class LogParserService : ILogParserService
+public class LogParserService : ILogParserService, IDisposable
 {
     private readonly List<string> _watchedCharacters = new();
     private string? _overviewRegex;
+    
+    private readonly ILogReaderService _logReaderService;
+    
+    public Task Start() => _logReaderService.Start();
+    public void Stop() => _logReaderService.Stop();
 
     public LogParserService(ILogReaderService logReaderService, IOptionsMonitor<EveLogParserOptions> options)
     {
-        logReaderService.OnFileRead += HandleLogFileRead;
+        _logReaderService = logReaderService;
+        _logReaderService.OnFileRead += HandleLogFileRead;
         
         UpdateRegex(options.CurrentValue);
         options.OnChange(UpdateRegex);
     }
 
-    public event EventHandler<IncomingDamageEvent> OnIncomingDamage;
-    public event EventHandler<OutgoingDamageEvent> OnOutgoingDamage;
-    public event EventHandler<IncomingHullEvent> OnIncomingHull;
-    public event EventHandler<OutgoingHullEvent> OnOutgoingHull;
-    public event EventHandler<IncomingShieldEvent> OnIncomingShield;
-    public event EventHandler<OutgoingShieldEvent> OnOutgoingShield;
-    public event EventHandler<IncomingArmorEvent> OnIncomingArmor;
-    public event EventHandler<OutgoingArmorEvent> OnOutgoingArmor;
-    public event EventHandler<IncomingCapacitorEvent> OnIncomingCapacitor;
-    public event EventHandler<OutgoingCapacitorEvent> OnOutgoingCapacitor;
-    public event EventHandler<IncomingNeutEvent> OnIncomingNeut;
-    public event EventHandler<OutgoingNeutEvent> OnOutgoingNeut;
-    public event EventHandler<IncomingNosEvent> OnIncomingNos;
-    public event EventHandler<OutgoingNosEvent> OnOutgoingNos;
+    public event EventHandler<IncomingDamageEvent>? OnIncomingDamage;
+    public event EventHandler<OutgoingDamageEvent>? OnOutgoingDamage;
+    public event EventHandler<IncomingHullEvent>? OnIncomingHull;
+    public event EventHandler<OutgoingHullEvent>? OnOutgoingHull;
+    public event EventHandler<IncomingShieldEvent>? OnIncomingShield;
+    public event EventHandler<OutgoingShieldEvent>? OnOutgoingShield;
+    public event EventHandler<IncomingArmorEvent>? OnIncomingArmor;
+    public event EventHandler<OutgoingArmorEvent>? OnOutgoingArmor;
+    public event EventHandler<IncomingCapacitorEvent>? OnIncomingCapacitor;
+    public event EventHandler<OutgoingCapacitorEvent>? OnOutgoingCapacitor;
+    public event EventHandler<IncomingNeutEvent>? OnIncomingNeut;
+    public event EventHandler<OutgoingNeutEvent>? OnOutgoingNeut;
+    public event EventHandler<IncomingNosEvent>? OnIncomingNos;
+    public event EventHandler<OutgoingNosEvent>? OnOutgoingNos;
 
     private void UpdateRegex(EveLogParserOptions options)
     {
@@ -64,7 +70,7 @@ public class LogParserService : ILogParserService
             throw new YamlException("Error parsing overview", ex);
         }
     }
-    
+
     public void StartWatchingCharacter(string characterId)
     {
         _watchedCharacters.Add(characterId);
@@ -219,7 +225,7 @@ public class LogParserService : ILogParserService
                 break;
     }
 
-    private bool FindAndRaiseEvent<T>(EventHandler<T> eventHandler, string constantRegex,
+    private bool FindAndRaiseEvent<T>(EventHandler<T>? eventHandler, string constantRegex,
         Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory, string characterId,
         string logLine, bool useOverviewRegex = true)
         where T : EveLogEventArgs
@@ -379,5 +385,10 @@ public class LogParserService : ILogParserService
 
         return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
             argsBuilder, characterId, logLine, false);
+    }
+
+    public void Dispose()
+    {
+        _logReaderService.OnFileRead -= HandleLogFileRead;
     }
 }

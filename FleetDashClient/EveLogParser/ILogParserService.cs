@@ -20,4 +20,6 @@ public interface ILogParserService
     event EventHandler<OutgoingNosEvent> OnOutgoingNos;
     void StartWatchingCharacter(string characterId);
     void StopWatchingCharacter(string characterId);
+    Task Start();
+    void Stop();
 }

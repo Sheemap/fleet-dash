@@ -1,9 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using ElectronNET.API;
 using ElectronNET.API.Entities;
+using FleetDashClient.Configuration;
 using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
+using Microsoft.Extensions.Options;
 
 namespace FleetDashClient.ViewModels;
 
@@ -13,32 +15,29 @@ public class LogViewModel
     public event EventHandler<PathUpdatedEventArgs> OnLogDirectoryUpdated;
     public event EventHandler<PathUpdatedEventArgs> OnOverviewFileUpdated;
     
-
     public string LogDirectory { get; set; }
-    public string? Overview { get; set; }
+    public string OverviewFile { get; set; }
     
-    private readonly DataContext _dbContext;
+    private readonly IOptionsMonitor<Models.Configuration> _configuration;
 
-    public LogViewModel(DataContext dbContext)
+    private readonly JsonConfigurationManager _configManager;
+
+    public LogViewModel(IOptionsMonitor<Models.Configuration> config, JsonConfigurationManager configManager)
     {
-        _dbContext = dbContext;
-        InitializeLogSettings();
-        
+        _configuration = config;
+        _configManager = configManager;
+
+        LogDirectory = _configuration.CurrentValue.LogDirectory;
+        OverviewFile = _configuration.CurrentValue.OverviewPath;
+        config.OnChange(UpdateConfig);
     }
-
-    private void InitializeLogSettings()
+    
+    private void UpdateConfig(Models.Configuration config)
     {
-        // var config = _dbContext.Configurations.FirstOrDefault();
-        //
-        // if (config != null && !string.IsNullOrWhiteSpace(config.LogDirectory))
-        // {
-        //     LogDirectory = config.LogDirectory;
-        // }
-        //
-        // if (config != null && !string.IsNullOrWhiteSpace(config.Overview))
-        // {
-        //     Overview = Path.GetFileName(config.Overview);
-        // }
+        // TODO: Why does updating these props not update the UI?
+        // blazor wack, learn it better
+        LogDirectory = config.LogDirectory;
+        OverviewFile = config.OverviewPath;
     }
 
 
@@ -54,14 +53,11 @@ public class LogViewModel
         string[] folder = await Electron.Dialog.ShowOpenDialogAsync(mainWindow, options);
         if (folder.Length > 0)
         {
-            LogDirectory = folder[0];
-            // var config = _dbContext.Configurations.First();
-            // config.LogDirectory = LogDirectory;
-            // await _dbContext.SaveChangesAsync();
-            //
-            // var raiseEvent = OnLogDirectoryUpdated;
-            // if (raiseEvent != null)
-            //     raiseEvent(this, new PathUpdatedEventArgs(LogDirectory));
+            var config = new Models.Configuration
+            {
+                LogDirectory = folder[0]
+            };
+            _configManager.UpdateConfiguration(config);
         }
     }
 
@@ -77,14 +73,11 @@ public class LogViewModel
         string[] file = await Electron.Dialog.ShowOpenDialogAsync(mainWindow, options);
         if (file.Length > 0)
         {
-            Overview = Path.GetFileName(file[0]);
-            // var config = _dbContext.Configurations.First();
-            // config.Overview = file[0];
-            // await _dbContext.SaveChangesAsync();
-            //
-            // var raiseEvent = OnOverviewFileUpdated;
-            // if (raiseEvent != null)
-            //     raiseEvent(this, new PathUpdatedEventArgs(file[0]));
+            var config = new Models.Configuration
+            {
+                OverviewPath = file[0]
+            };
+            _configManager.UpdateConfiguration(config);
         }
     }
 }

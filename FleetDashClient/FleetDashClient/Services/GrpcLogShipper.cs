@@ -2,17 +2,14 @@
 using EveLogParser.Models.Events;
 using FleetDashClient.Data;
 using FleetDashClient.Models;
-using FleetDashClient.Models.Events;
 using FleetDashClient.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Grpc.Net.Client;
 using Microsoft.EntityFrameworkCore;
-using Quobject.SocketIoClientDotNet.Client;
 
 namespace FleetDashClient.Services;
 
-public class GrpcLogShipper
+public class GrpcLogShipper : IDisposable
 {
     private readonly ILogParserService _logParserService;
     private readonly DataContext _dbContext;
@@ -22,10 +19,14 @@ public class GrpcLogShipper
     
     private readonly FleetDashService.FleetDashServiceClient _client;
     
-    public GrpcLogShipper(ILogParserService logParserService, DataContext dataContext)
+    public GrpcLogShipper(
+        ILogParserService logParserService,
+        DataContext dataContext,
+        FleetDashService.FleetDashServiceClient client)
     {
         _logParserService = logParserService;
         _dbContext = dataContext;
+        _client = client;
 
         _logParserService.OnIncomingDamage += EveLogHandler;
         _logParserService.OnOutgoingDamage += EveLogHandler;
@@ -41,9 +42,6 @@ public class GrpcLogShipper
         _logParserService.OnOutgoingNos += EveLogHandler;
         _logParserService.OnIncomingNeut += EveLogHandler;
         _logParserService.OnOutgoingNeut += EveLogHandler;
-
-        var channel = GrpcChannel.ForAddress("http://localhost:50051");
-        _client = new FleetDashService.FleetDashServiceClient(channel);
     }
 
     private async Task<Token> GetFreshToken(Token token, string characterId)
@@ -51,13 +49,13 @@ public class GrpcLogShipper
         if (token.ExpiresAt > DateTimeOffset.Now.AddMinutes(1)) return token;
         
         // refresh token
-        token = await TokenService.RefreshToken(token);
-        token.CharacterId = characterId;
-        token.ExpiresAt = DateTimeOffset.Now.AddSeconds(token.ExpiresIn);
-        _dbContext.Tokens.Add(token);
+        var newToken = await TokenService.RefreshToken(token);
+        newToken.CharacterId = characterId;
+        newToken.ExpiresAt = DateTimeOffset.Now.AddSeconds(newToken.ExpiresIn);
+        _dbContext.Tokens.Add(newToken);
         await _dbContext.SaveChangesAsync();
 
-        return token;
+        return newToken;
     }
 
     private void EveLogHandler<T>(object? sender, T args) where T : EveLogEventArgs
@@ -84,12 +82,12 @@ public class GrpcLogShipper
                 return;
             }
             
-            token = await GetFreshToken(token, character.Id);
+            var freshToken = await GetFreshToken(token, character.Id);
 
             // Need to be in a fleet to ship logs
             if (_fleetData.Item2 < DateTimeOffset.Now.AddSeconds(-30))
             {
-                var fleetId = await EveClient.GetCharacterFleetIdAsync(token.CharacterId, token.AccessToken);
+                var fleetId = await EveClient.GetCharacterFleetIdAsync(freshToken.CharacterId, freshToken.AccessToken);
                 _fleetData = (fleetId, DateTimeOffset.Now);
             }
             if (_fleetData.Item1 == null)
@@ -99,7 +97,7 @@ public class GrpcLogShipper
 
             var meta = new Metadata
             {
-                { "Authorization", $"Bearer {token.AccessToken}" }
+                { "Authorization", $"Bearer {freshToken.AccessToken}" }
             };
 
             var eventType = args.GetType().ToString().Split('.').Last();
@@ -128,5 +126,23 @@ public class GrpcLogShipper
                 }
             }
         });
+    }
+
+    public void Dispose()
+    {
+        _logParserService.OnIncomingDamage -= EveLogHandler;
+        _logParserService.OnOutgoingDamage -= EveLogHandler;
+        _logParserService.OnIncomingArmor -= EveLogHandler;
+        _logParserService.OnOutgoingArmor -= EveLogHandler;
+        _logParserService.OnIncomingShield -= EveLogHandler;
+        _logParserService.OnOutgoingShield -= EveLogHandler;
+        _logParserService.OnIncomingHull -= EveLogHandler;
+        _logParserService.OnOutgoingHull -= EveLogHandler;
+        _logParserService.OnIncomingCapacitor -= EveLogHandler;
+        _logParserService.OnOutgoingCapacitor -= EveLogHandler;
+        _logParserService.OnIncomingNos -= EveLogHandler;
+        _logParserService.OnOutgoingNos -= EveLogHandler;
+        _logParserService.OnIncomingNeut -= EveLogHandler;
+        _logParserService.OnOutgoingNeut -= EveLogHandler;
     }
 }

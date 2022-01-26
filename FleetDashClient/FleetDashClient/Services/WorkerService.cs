@@ -1,6 +1,7 @@
 ﻿using ElectronNET.API;
 using EveLogParser;
 using EveLogParser.Models.Events;
+using FleetDashClient.Configuration;
 using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
 using FleetDashClient.ViewModels;
@@ -9,10 +10,6 @@ namespace FleetDashClient.Services;
 
 public class WorkerService : BackgroundService
 {
-    private ILogParserService LogParserService { get; set; }
-    private ILogReaderService LogReaderService { get; set; }
-    private GrpcLogShipper LogShipper { get; set; }
-    
     private readonly IServiceProvider _serviceProvider;
 
     private bool _handlersInitialized;
@@ -20,86 +17,94 @@ public class WorkerService : BackgroundService
     private DataContext _dbContext;
     private ICharacterService _characterService;
     private LogViewModel _logViewModel;
+    private ILogParserService _logParserService;
+    private JsonConfigurationManager _configManager;
+    private GrpcLogShipper _logShipper;
 
-    public WorkerService(IServiceProvider services, ILogParserService logParserService)
+    public WorkerService(IServiceProvider services)
     {
-        LogParserService = logParserService;
         _serviceProvider = services;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // while (!stoppingToken.IsCancellationRequested)
-        // {
-        //     try
-        //     {
-        //         // Hosted services are singleton, but everything else is scoped.
-        //         // So we must make our own scope to get the services we need.
-        //         using var scope = _serviceProvider.CreateScope();
-        //
-        //         _dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-        //         _characterService = scope.ServiceProvider.GetRequiredService<ICharacterService>();
-        //         _logViewModel = scope.ServiceProvider.GetRequiredService<LogViewModel>();
-        //
-        //         StartLogProcessing();
-        //         
-        //         await EnsureElectronHandlersInitialized(stoppingToken);
-        //
-        //         while (!stoppingToken.IsCancellationRequested)
-        //         {
-        //             Thread.Sleep(1000);
-        //         }
-        //     }
-        //     catch(Exception e)
-        //     {
-        //         Console.WriteLine(e.Message, e.StackTrace);
-        //         if (HybridSupport.IsElectronActive)
-        //         {
-        //             Electron.Dialog.ShowErrorBox("Unexpected error occured!",
-        //                 $"Something bad happened! We are internally restarting our system, " +
-        //                 $"if this doesnt resolve the issue, please restart the app.\nError:{e.Message}");
-        //         }
-        //     }
-        //}
+         while (!stoppingToken.IsCancellationRequested)
+         {
+             try
+             {
+                 // Hosted services are singleton, but everything else is scoped.
+                 // So we must make our own scope to get the services we need.
+                 using var scope = _serviceProvider.CreateScope();
+        
+                 _dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                 _characterService = scope.ServiceProvider.GetRequiredService<ICharacterService>();
+                 _logViewModel = scope.ServiceProvider.GetRequiredService<LogViewModel>();
+                 _logParserService = scope.ServiceProvider.GetRequiredService<ILogParserService>();
+                 _configManager = scope.ServiceProvider.GetRequiredService<JsonConfigurationManager>();
+                 _logShipper = scope.ServiceProvider.GetRequiredService<GrpcLogShipper>();
+        
+                 StartLogProcessing();
+                 
+                 await EnsureElectronHandlersInitialized(stoppingToken);
+        
+                 while (!stoppingToken.IsCancellationRequested)
+                 {
+                     Thread.Sleep(1000);
+                 }
+             }
+             catch(Exception e)
+             {
+                 Console.WriteLine(e.Message, e.StackTrace);
+                 if (HybridSupport.IsElectronActive)
+                 {
+                     Electron.Dialog.ShowErrorBox("Unexpected error occured!",
+                         $"Something bad happened! We are internally restarting our system, " +
+                         $"if this doesnt resolve the issue, please restart the app.\nError:{e.Message}");
+                 }
+             }
+         }
     }
 
     private void StartLogProcessing()
     {
         var characters = _dbContext.Characters.ToList();
         
-        characters.ForEach(x => LogParserService.StartWatchingCharacter(x.Id));
-        LogReaderService.Start();
+        characters.ForEach(x => _logParserService.StartWatchingCharacter(x.Id));
         
         _characterService.OnCharacterAdded += HandleCharacterAdded;
         _characterService.OnCharacterRemoved += HandleCharacterRemoved;
-        // _logViewModel.OnLogDirectoryUpdated += HandleLogDirectoryUpdated;
-        // _logViewModel.OnOverviewFileUpdated += HandleOverviewFileUpdated;
+        _logViewModel.OnLogDirectoryUpdated += HandleLogDirectoryUpdated;
+        _logViewModel.OnOverviewFileUpdated += HandleOverviewFileUpdated;
+
+        _logParserService.Start();
     }
     
     private void HandleOverviewFileUpdated(object sender, PathUpdatedEventArgs overviewPath)
     {
-        // var watchedChars = LogParserService.WatchedCharacters;
-        // var overviewYaml = GetOverviewYaml(overviewPath.Path);
-        //
-        // watchedChars.ForEach(LogParserService.StopWatchingCharacter);
-        // watchedChars.ForEach(x => LogParserService.StartWatchingCharacter(x, overviewYaml));
+        var config = new Models.Configuration
+        {
+            OverviewPath = overviewPath.Path,
+        };
+        _configManager.UpdateConfiguration(config);
     }
 
     private void HandleLogDirectoryUpdated(object sender, PathUpdatedEventArgs logDirectory)
     {
-        // Changing directory requires a restart of the log reader.
-        LogReaderService.Stop();
-        StartLogProcessing();
+        var config = new Models.Configuration
+        {
+            LogDirectory = logDirectory.Path,
+        };
+        _configManager.UpdateConfiguration(config);
     }
     
     private void HandleCharacterAdded(object sender, CharacterAddedEventArgs args)
     {
-        LogParserService.StartWatchingCharacter(args.Character.Id);
+        _logParserService.StartWatchingCharacter(args.Character.Id);
     }
 
     private void HandleCharacterRemoved(object sender, CharacterRemovedEventArgs args)
     {
-        LogParserService.StopWatchingCharacter(args.Character.Id);
+        _logParserService.StopWatchingCharacter(args.Character.Id);
     }
 
     private async Task EnsureElectronHandlersInitialized(CancellationToken stoppingToken)
@@ -128,23 +133,25 @@ public class WorkerService : BackgroundService
     {
         var mainWindow = Electron.WindowManager.BrowserWindows.First();
         var windowPosition = await mainWindow.GetPositionAsync();
-
-        // var config = _dbContext.Configurations.First();
-        // config.WindowPositionX = windowPosition[0];
-        // config.WindowPositionY = windowPosition[1];
-        //
-        // await _dbContext.SaveChangesAsync();
+        
+        var config = new Models.Configuration
+        {
+            WindowX = windowPosition[0],
+            WindowY = windowPosition[1],
+        };
+        _configManager.UpdateConfiguration(config);
     }
     
     private async void UpdateWindowSize()
     {
         var mainWindow = Electron.WindowManager.BrowserWindows.First();
         var windowSize = await mainWindow.GetSizeAsync();
-
-        // var config = _dbContext.Configurations.First();
-        // config.WindowWidth = windowSize[0];
-        // config.WindowHeight = windowSize[1];
-        //
-        // await _dbContext.SaveChangesAsync();
+        
+        var config = new Models.Configuration
+        {
+            WindowWidth = windowSize[0],
+            WindowHeight = windowSize[1],
+        };
+        _configManager.UpdateConfiguration(config);
     }
 }

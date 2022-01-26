@@ -3,6 +3,8 @@ using EveLogParser.Builder;
 using FleetDashClient;
 using FleetDashClient.Configuration;
 using FleetDashClient.Data;
+using FleetDashClient.Models;
+using FleetDashClient.Protobuf;
 using FleetDashClient.Services;
 using FleetDashClient.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +28,8 @@ var configFileLocation = Path.Combine(location, "config.json");
 JsonConfigurationManager.EnsureConfigFileExists(configFileLocation);
 builder.Configuration.AddJsonFile(configFileLocation, false, true);
 
+builder.Services.Configure<Configuration>(builder.Configuration);
+
 var dbFileLocation = Path.Combine(location, "fleetdash.db");
 
 builder.Services.AddDbContext<DataContext>(options =>
@@ -38,6 +42,12 @@ builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<IndexViewModel>();
 builder.Services.AddScoped<LogViewModel>();
 builder.Services.AddScoped<EveLoginViewModel>();
+builder.Services.AddScoped<GrpcLogShipper>();
+
+builder.Services.AddGrpcClient<FleetDashService.FleetDashServiceClient>(o =>
+{
+    o.Address = new Uri("http://localhost:50051");
+});
 
 builder.Services.AddHostedService<WorkerService>();
 
