@@ -5,6 +5,7 @@ using EveLogParser.Builder;
 using EveLogParser.Constants;
 using EveLogParser.Models.Events;
 using Microsoft.Extensions.Options;
+using Serilog;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
@@ -189,6 +190,7 @@ public class LogParserService : ILogParserService, IDisposable
 
     private void HandleLogFileRead(object source, LogFileReadEventArgs e)
     {
+        Log.Debug("Processing log entry");
         if (!_watchedCharacters.Contains(e.CharacterId)) return;
 
         var line = Encoding.UTF8.GetString(e.Content);
@@ -239,6 +241,8 @@ public class LogParserService : ILogParserService, IDisposable
         var regex = new Regex(EnglishRegex.Timestamp + constantRegex + charRegex);
         var match = regex.Match(logLine);
         if (!match.Success) return false;
+        Log.Debug("Log matches type {EventType}", typeof(T).Name);
+
         
         var timestampStr = match.Groups.GetValueOrDefault("Timestamp")?.Value ?? "Unknown";
         if (!DateTime.TryParseExact(timestampStr, "yyyy.MM.dd HH:mm:ss", null,

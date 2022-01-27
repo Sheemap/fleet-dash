@@ -5,6 +5,9 @@ using FleetDashClient.Configuration;
 using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
 using FleetDashClient.ViewModels;
+using Serilog;
+using Serilog.Core;
+using static System.Threading.Tasks.Task;
 
 namespace FleetDashClient.Services;
 
@@ -35,31 +38,41 @@ public class WorkerService : BackgroundService
                  // Hosted services are singleton, but everything else is scoped.
                  // So we must make our own scope to get the services we need.
                  using var scope = _serviceProvider.CreateScope();
-        
+
                  _dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                  _characterService = scope.ServiceProvider.GetRequiredService<ICharacterService>();
                  _logViewModel = scope.ServiceProvider.GetRequiredService<LogViewModel>();
                  _logParserService = scope.ServiceProvider.GetRequiredService<ILogParserService>();
                  _configManager = scope.ServiceProvider.GetRequiredService<JsonConfigurationManager>();
                  _logShipper = scope.ServiceProvider.GetRequiredService<GrpcLogShipper>();
-        
+
                  StartLogProcessing();
-                 
-                 await EnsureElectronHandlersInitialized(stoppingToken);
-        
-                 while (!stoppingToken.IsCancellationRequested)
+
+                 // This causes a lot of unrelated things to break, such as the directory selector to not return correctly.
+                 // Not sure why, but it's not a big enough issue to fix right now.
+                 // if (HybridSupport.IsElectronActive)
+                 // {
+                 //     await EnsureElectronHandlersInitialized(stoppingToken);
+                 // }
+
+                 while (true)
                  {
-                     Thread.Sleep(1000);
+                     await Delay(1000, stoppingToken);
+                     stoppingToken.ThrowIfCancellationRequested();
                  }
              }
-             catch(Exception e)
+             catch (Exception ex) when(ex is OperationCanceledException or TaskCanceledException)
              {
-                 Console.WriteLine(e.Message, e.StackTrace);
+                 Log.Information("WorkerService stopped due to cancellation request");
+             }
+             catch(Exception ex)
+             {
+                 Log.Error(ex, "Exception occured in WorkerService");
                  if (HybridSupport.IsElectronActive)
                  {
                      Electron.Dialog.ShowErrorBox("Unexpected error occured!",
                          $"Something bad happened! We are internally restarting our system, " +
-                         $"if this doesnt resolve the issue, please restart the app.\nError:{e.Message}");
+                         $"if this doesnt resolve the issue, please restart the app.\nError:{ex.Message}");
                  }
              }
          }
@@ -112,7 +125,7 @@ public class WorkerService : BackgroundService
         while (!stoppingToken.IsCancellationRequested || !_handlersInitialized)
         {
             AddElectronEventHandlers();
-            await Task.Delay(1000, stoppingToken);
+            await Delay(1000, stoppingToken);
         }
     }
 
@@ -129,10 +142,10 @@ public class WorkerService : BackgroundService
         _handlersInitialized = true;
     }
 
-    private async void UpdateWindowPosition()
+    private void UpdateWindowPosition()
     {
         var mainWindow = Electron.WindowManager.BrowserWindows.First();
-        var windowPosition = await mainWindow.GetPositionAsync();
+        var windowPosition = mainWindow.GetPositionAsync().Result;
         
         var config = new Models.Configuration
         {
@@ -142,10 +155,10 @@ public class WorkerService : BackgroundService
         _configManager.UpdateConfiguration(config);
     }
     
-    private async void UpdateWindowSize()
+    private void UpdateWindowSize()
     {
         var mainWindow = Electron.WindowManager.BrowserWindows.First();
-        var windowSize = await mainWindow.GetSizeAsync();
+        var windowSize = mainWindow.GetSizeAsync().Result;
         
         var config = new Models.Configuration
         {

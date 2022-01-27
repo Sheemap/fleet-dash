@@ -8,6 +8,7 @@ using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace FleetDashClient.ViewModels;
 
@@ -52,10 +53,13 @@ public class LogViewModel
         var options = new OpenDialogOptions {
             Properties = new[] {
                 OpenDialogProperty.openDirectory
-            }
+            },
+            Title = "Select Log Directory",
         };
 
+        Log.Debug("Prompting for folder selection");
         string[] folder = await Electron.Dialog.ShowOpenDialogAsync(mainWindow, options);
+        Log.Debug("Log directory selected: {@Folder}", folder);
         if (folder.Length > 0)
         {
             var config = new Models.Configuration

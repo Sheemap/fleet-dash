@@ -2,10 +2,12 @@
 using EveLogParser.Models.Events;
 using FleetDashClient.Data;
 using FleetDashClient.Models;
+using FleetDashClient.Models.Exceptions;
 using FleetDashClient.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace FleetDashClient.Services;
 
@@ -51,7 +53,6 @@ public class GrpcLogShipper : IDisposable
         // refresh token
         var newToken = await TokenService.RefreshToken(token);
         newToken.CharacterId = characterId;
-        newToken.ExpiresAt = DateTimeOffset.Now.AddSeconds(newToken.ExpiresIn);
         _dbContext.Tokens.Add(newToken);
         await _dbContext.SaveChangesAsync();
 
@@ -60,7 +61,7 @@ public class GrpcLogShipper : IDisposable
 
     private void EveLogHandler<T>(object? sender, T args) where T : EveLogEventArgs
     {
-        if (_lastBackOff < DateTimeOffset.Now.AddSeconds(-30))
+        if (_lastBackOff > DateTimeOffset.Now.AddSeconds(-30))
         {
             return;
         }
@@ -79,19 +80,31 @@ public class GrpcLogShipper : IDisposable
             if (token == null)
             {
                 // TODO: Inform UI that character has no token
+                Log.Warning("Character {CharacterId} has no token", character.Id);
                 return;
             }
-            
-            var freshToken = await GetFreshToken(token, character.Id);
+
+            Token freshToken;
+            try
+            {
+                freshToken = await GetFreshToken(token, character.Id);
+            }
+            catch (TokenRefreshException ex)
+            {
+                Log.Warning(ex, "Failed to refresh token for character {CharacterId}", character.Id);
+                return;
+            }
 
             // Need to be in a fleet to ship logs
-            if (_fleetData.Item2 < DateTimeOffset.Now.AddSeconds(-30))
+            // Eve API caches the route for 60 seconds
+            if (_fleetData.Item2 < DateTimeOffset.Now.AddSeconds(-60))
             {
                 var fleetId = await EveClient.GetCharacterFleetIdAsync(freshToken.CharacterId, freshToken.AccessToken);
                 _fleetData = (fleetId, DateTimeOffset.Now);
             }
             if (_fleetData.Item1 == null)
             {
+                Log.Debug("Not in a fleet, skipping log ship");
                 return;
             }
 
@@ -122,7 +135,12 @@ public class GrpcLogShipper : IDisposable
             {
                 if (ex.StatusCode == StatusCode.FailedPrecondition)
                 {
+                    Log.Debug("Server is not accepting logs, backing off for 30 seconds");
                     _lastBackOff = DateTimeOffset.Now;
+                }
+                else
+                {
+                    Log.Warning(ex, "Failed to send log event to server. Event: {@LogEvent}", eveEvent);
                 }
             }
         });

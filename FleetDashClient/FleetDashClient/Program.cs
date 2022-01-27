@@ -8,29 +8,40 @@ using FleetDashClient.Protobuf;
 using FleetDashClient.Services;
 using FleetDashClient.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Exceptions;
+
+var appLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FleetDash");
+if (!Directory.Exists(appLocation))
+{
+    Directory.CreateDirectory(appLocation);
+}
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .Enrich.WithExceptionDetails()
+    .WriteTo.Console()
+    .WriteTo.File($"{appLocation}/logs/log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseElectron(args);
+builder.WebHost.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 
-var location = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FleetDash");
-if (!Directory.Exists(location))
-{
-    Directory.CreateDirectory(location);
-}
-
-var configFileLocation = Path.Combine(location, "config.json");
+var configFileLocation = Path.Combine(appLocation, "config.json");
 JsonConfigurationManager.EnsureConfigFileExists(configFileLocation);
 builder.Configuration.AddJsonFile(configFileLocation, false, true);
 
+builder.Services.AddOptions<ConfigurationOptions>().Configure(opts => opts.Path = configFileLocation);
 builder.Services.Configure<Configuration>(builder.Configuration);
 
-var dbFileLocation = Path.Combine(location, "fleetdash.db");
+var dbFileLocation = Path.Combine(appLocation, "fleetdash.db");
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite($"Data Source={dbFileLocation}"));
@@ -63,7 +74,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-if (HybridSupport.IsElectronActive) ElectronBootstrap.Bootstrap(builder.Configuration);
+if (HybridSupport.IsElectronActive) ElectronBootstrap.Bootstrap(builder.Configuration, app);
 
 
 // Configure the HTTP request pipeline.

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace FleetDashClient.Configuration;
 
@@ -21,6 +22,7 @@ public class JsonConfigurationManager
     public void UpdateConfiguration(Models.Configuration config)
     {
         var currentConfig = JsonConvert.DeserializeObject<Models.Configuration>(File.ReadAllText(_options.Path));
+        Log.Debug("Current config: {@Config}", currentConfig);
         var updatedConfig = new Models.Configuration
         {
             LogDirectory = config.LogDirectory ?? currentConfig.LogDirectory,
@@ -30,7 +32,8 @@ public class JsonConfigurationManager
             WindowX = config.WindowX ?? currentConfig.WindowX,
             WindowY = config.WindowY ?? currentConfig.WindowY
         };
-        File.WriteAllText(_options.Path, JsonConvert.SerializeObject(config, Formatting.Indented));
+        Log.Debug("Updated config: {@Config}", currentConfig);
+        File.WriteAllText(_options.Path, JsonConvert.SerializeObject(updatedConfig, Formatting.Indented));
     }
 
     public static void EnsureConfigFileExists(string path)

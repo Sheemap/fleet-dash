@@ -1,4 +1,5 @@
 using FleetDashClient.Models;
+using FleetDashClient.Models.Exceptions;
 using Newtonsoft.Json;
 using RestSharp;
 
@@ -22,15 +23,17 @@ public static class TokenService
         var response = await client.ExecuteAsync(request);
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
-            throw new Exception("Error refreshing token");
+            throw new TokenRefreshException($"Received {response.StatusCode}. Content: {response.Content}");
         }
         
         var content = JsonConvert.DeserializeObject<Token>(response.Content);
         if (content == null)
         {
-            throw new Exception("Error refreshing token");
+            throw new TokenRefreshException("Failed to parse the response");
         }
         
+        content.ExpiresAt = DateTimeOffset.Now.AddSeconds(content.ExpiresIn);
+
         return content;
     }
 }
