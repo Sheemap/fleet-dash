@@ -1,10 +1,12 @@
 ﻿using System.Runtime.InteropServices;
 using ElectronNET.API;
 using ElectronNET.API.Entities;
+using EventAggregator.Blazor;
 using FleetDashClient.Configuration;
 using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 
 namespace FleetDashClient.ViewModels;
@@ -16,28 +18,31 @@ public class LogViewModel
     public event EventHandler<PathUpdatedEventArgs> OnOverviewFileUpdated;
     
     public string LogDirectory { get; set; }
-    public string OverviewFile { get; set; }
+    public string OverviewPath { get; set; }
     
     private readonly IOptionsMonitor<Models.Configuration> _configuration;
-
     private readonly JsonConfigurationManager _configManager;
+    private readonly IEventAggregator _eventAggregator;
 
-    public LogViewModel(IOptionsMonitor<Models.Configuration> config, JsonConfigurationManager configManager)
+    public LogViewModel(
+        IOptionsMonitor<Models.Configuration> config, 
+        JsonConfigurationManager configManager, 
+        IEventAggregator eventAggregator)
     {
         _configuration = config;
         _configManager = configManager;
+        _eventAggregator = eventAggregator;
 
         LogDirectory = _configuration.CurrentValue.LogDirectory;
-        OverviewFile = _configuration.CurrentValue.OverviewPath;
+        OverviewPath = _configuration.CurrentValue.OverviewPath;
         config.OnChange(UpdateConfig);
     }
     
     private void UpdateConfig(Models.Configuration config)
     {
-        // TODO: Why does updating these props not update the UI?
-        // blazor wack, learn it better
         LogDirectory = config.LogDirectory;
-        OverviewFile = config.OverviewPath;
+        OverviewPath = config.OverviewPath;
+        _eventAggregator.PublishAsync(new PathUpdatedEventArgs(string.Empty));
     }
 
 

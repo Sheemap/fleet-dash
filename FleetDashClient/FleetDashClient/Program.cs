@@ -37,6 +37,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddEveLogParser(builder.Configuration);
 
+builder.Services.AddEventAggregator(options =>
+    options.AutoRefresh = true);
 builder.Services.AddScoped<JsonConfigurationManager>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<IndexViewModel>();
