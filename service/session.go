@@ -22,6 +22,7 @@ type sessionService struct {
 var (
 	ErrSessionAlreadyRunning = errors.New("session already running")
 	ErrNotInFleet			= errors.New("not in fleet")
+	ErrNotInSession = errors.New("not in active session")
 )
 
 type SessionService interface {
@@ -151,6 +152,9 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 	fleetSession, err := s.repo.GetSessionByFleet(fleetID)
 	if err != nil {
 		return nil, err
+	}
+	if fleetSession == nil {
+		return nil, ErrNotInSession
 	}
 
 	return &fleetSession.ID, nil

@@ -13,7 +13,7 @@ type BaseModel struct{
 type Session struct {
 	BaseModel
 
-	EndedAt time.Time
+	EndedAt *time.Time
 	CharacterID string
 	FleetID string
 

@@ -2,10 +2,12 @@ package endpoints
 
 import (
 	"context"
-	"errors"
+	"github.com/go-kit/kit/log"
 	"github.com/golang-jwt/jwt/v4"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 
 	pb "fleet-dash-core/protobuf"
 	"fleet-dash-core/service"
@@ -18,13 +20,16 @@ type GrpcEndpoints struct {
 
 type EmptyResponse struct {}
 
-var (
-	ErrNotInSession = errors.New("not in active session")
-)
+func MakeGrpcEndpoints(es service.EventService, ss service.SessionService, l log.Logger) GrpcEndpoints {
 
-func MakeGrpcEndpoints(es service.EventService, ss service.SessionService) GrpcEndpoints {
+	postEveLogEventEndpoint := makePostEveLogEventEndpoint(es, ss)
+	postEveLogEventEndpoint = requireAuthenticated(postEveLogEventEndpoint)
+	postEveLogEventEndpoint = setGrpcErrorCodes(postEveLogEventEndpoint)
+	postEveLogEventEndpoint = grpcLoggingMiddleware(postEveLogEventEndpoint, l)
+
+
 	return GrpcEndpoints{
-		PostEveLogEvent: setGrpcErrorCodes(requireAuthenticated(makePostEveLogEventEndpoint(es, ss))),
+		PostEveLogEvent: postEveLogEventEndpoint,
 	}
 }
 
@@ -42,7 +47,7 @@ func makePostEveLogEventEndpoint(es service.EventService, ss service.SessionServ
 			return nil, err
 		}
 		if sessionId == nil {
-			return nil, ErrNotInSession
+			return nil, service.ErrNotInSession
 		}
 
 		req := request.(*pb.EveLogEvent)
@@ -68,6 +73,19 @@ func makePostEveLogEventEndpoint(es service.EventService, ss service.SessionServ
 	}
 }
 
+func grpcLoggingMiddleware(next endpoint.Endpoint, l log.Logger) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		method, _ := grpc.Method(ctx)
+		defer func(begin time.Time) {
+			l.Log(
+				"endpoint", method,
+				"took", time.Since(begin),
+			)
+		}(time.Now())
+		return next(ctx, request)
+	}
+}
+
 func setGrpcErrorCodes(next endpoint.Endpoint) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		response, err = next(ctx, request)
@@ -82,7 +100,7 @@ func codeFromErr(err error) codes.Code {
 	switch err {
 	case ErrNotAuthenticated:
 		return codes.Unauthenticated
-	case ErrNotInSession:
+	case service.ErrNotInSession:
 		return codes.FailedPrecondition
 	default:
 		return codes.Internal

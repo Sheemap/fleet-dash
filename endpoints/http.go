@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fleet-dash-core/service"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/log"
 	"github.com/golang-jwt/jwt/v4"
+	"time"
 )
 
 var (
@@ -20,9 +22,26 @@ type SessionStartResponse struct {
 	SessionId string `json:"sessionId"`
 }
 
-func MakeHttpEndpoints(s service.SessionService) HttpEndpoints {
+func MakeHttpEndpoints(s service.SessionService, l log.Logger) HttpEndpoints {
+
+	startSessionEndpoint := makeStartSessionEndpoint(s)
+	startSessionEndpoint = requireAuthenticated(startSessionEndpoint)
+	startSessionEndpoint = loggingMiddleware(startSessionEndpoint, l, "startSession")
+
 	return HttpEndpoints{
-		StartSession: requireAuthenticated(makeStartSessionEndpoint(s)),
+		StartSession: startSessionEndpoint,
+	}
+}
+
+func loggingMiddleware(next endpoint.Endpoint, l log.Logger, method string) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		defer func(begin time.Time) {
+			l.Log(
+				"method", method,
+				"took", time.Since(begin),
+			)
+		}(time.Now())
+		return next(ctx, request)
 	}
 }
 
