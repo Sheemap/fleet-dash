@@ -31,6 +31,12 @@ func MakeHTTPHandler(e endpoints.HttpEndpoints, logger log.Logger, validator uti
 		encodeResponse,
 		options...,
 	))
+	api.Methods("POST").Path("/session/end").Handler(httptransport.NewServer(
+		e.EndSession,
+		decodeEmptyRequest,
+		encodeNoContentResponse,
+		options...,
+	))
 	return r
 }
 
@@ -85,6 +91,11 @@ type errorer interface {
 	error() error
 }
 
+func encodeNoContentResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	if e, ok := response.(errorer); ok && e.error() != nil {
 		// Not a Go kit transport error, but a business-logic error.
@@ -109,7 +120,7 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func codeFrom(err error) int {
 	switch err {
-	case service.ErrSessionAlreadyRunning, service.ErrNotInFleet:
+	case service.ErrSessionAlreadyRunning, service.ErrNotInSession, service.ErrNotInFleet:
 		return http.StatusBadRequest
 	case endpoints.ErrNotAuthenticated:
 		return http.StatusUnauthorized

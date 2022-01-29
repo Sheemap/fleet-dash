@@ -27,6 +27,7 @@ var (
 
 type SessionService interface {
 	StartSession(character Character) (string, error)
+	EndSession(c Character) error
 	GetCharacterActiveSession(token *jwt.Token) (*string, error)
 }
 
@@ -46,6 +47,18 @@ func NewSessionService(repository data.Repository, logger log.Logger) SessionSer
 	}
 }
 
+func (s *sessionService) EndSession(c Character) error {
+	currentSessionID, err := s.GetCharacterActiveSession(c.AccessToken)
+	if err != nil {
+		return err
+	}
+	if currentSessionID == nil {
+		return ErrNotInSession
+	}
+
+	return s.repo.EndSession(*currentSessionID)
+}
+
 func (s *sessionService) StartSession(c Character) (string, error) {
 	currentSession, err := s.repo.GetCharacterActiveSession(c.ID)
 	if err != nil {
@@ -55,20 +68,12 @@ func (s *sessionService) StartSession(c Character) (string, error) {
 		return "", ErrSessionAlreadyRunning
 	}
 
-	eveClient, err := eveclient.NewEveClient(c.AccessToken)
+	fleetID, err := s.getCharacterFleet(c.AccessToken)
 	if err != nil {
 		return "", err
 	}
 
-	fleet, err := eveClient.GetCurrentFleet()
-	if err != nil {
-		return "", err
-	}
-	if fleet == nil {
-		return "", ErrNotInFleet
-	}
-	strFleetID := strconv.FormatInt(*fleet.FleetID, 10)
-	fleetSession, err := s.repo.GetSessionByFleet(strFleetID)
+	fleetSession, err := s.repo.GetSessionByFleet(*fleetID)
 	if err != nil {
 		return "", err
 	}
@@ -83,7 +88,7 @@ func (s *sessionService) StartSession(c Character) (string, error) {
 		BaseModel: data.BaseModel{
 			ID:	newID,
 		},
-		FleetID: strFleetID,
+		FleetID: *fleetID,
 		CharacterID: c.ID,
 	}
 
@@ -106,16 +111,28 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 		return &session.ID, nil
 	}
 
+	fleetID, err := s.getCharacterFleet(token)
+	if err != nil {
+		return nil, err
+	}
+
+	fleetSession, err := s.repo.GetSessionByFleet(*fleetID)
+	if err != nil {
+		return nil, err
+	}
+	if fleetSession == nil {
+		return nil, ErrNotInSession
+	}
+
+	return &fleetSession.ID, nil
+}
+
+func (s *sessionService) getCharacterFleet(token *jwt.Token) (*string, error) {
 	// hit cache for fleet ID
 	strFleetID, err := s.fleetCache.Get(token.Raw)
 
 	// if not found, get from eve client
 	if err == ttlcache.ErrNotFound {
-		err = s.logger.Log("msg", "cache miss, fetching fleet from API", "characterID", charID)
-		if err != nil {
-			return nil, err
-		}
-
 		eveClient, err := eveclient.NewEveClient(token)
 		if err != nil {
 			return nil, err
@@ -148,14 +165,5 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 
 	// cast our cached fleet id to string
 	fleetID := strFleetID.(string)
-
-	fleetSession, err := s.repo.GetSessionByFleet(fleetID)
-	if err != nil {
-		return nil, err
-	}
-	if fleetSession == nil {
-		return nil, ErrNotInSession
-	}
-
-	return &fleetSession.ID, nil
+	return &fleetID, nil
 }

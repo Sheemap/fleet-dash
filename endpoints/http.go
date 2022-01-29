@@ -16,11 +16,14 @@ var (
 
 type HttpEndpoints struct{
 	StartSession endpoint.Endpoint
+	EndSession endpoint.Endpoint
 }
 
 type SessionStartResponse struct {
 	SessionId string `json:"sessionId"`
 }
+
+type NoContentResponse struct{}
 
 func MakeHttpEndpoints(s service.SessionService, l log.Logger) HttpEndpoints {
 
@@ -28,8 +31,13 @@ func MakeHttpEndpoints(s service.SessionService, l log.Logger) HttpEndpoints {
 	startSessionEndpoint = requireAuthenticated(startSessionEndpoint)
 	startSessionEndpoint = loggingMiddleware(startSessionEndpoint, l, "startSession")
 
+	endSessionEndpoint := makeEndSessionEndpoint(s)
+	endSessionEndpoint = requireAuthenticated(endSessionEndpoint)
+	endSessionEndpoint = loggingMiddleware(endSessionEndpoint, l, "endSession")
+
 	return HttpEndpoints{
 		StartSession: startSessionEndpoint,
+		EndSession: endSessionEndpoint,
 	}
 }
 
@@ -37,7 +45,7 @@ func loggingMiddleware(next endpoint.Endpoint, l log.Logger, method string) endp
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		defer func(begin time.Time) {
 			l.Log(
-				"method", method,
+				"endpoint", method,
 				"took", time.Since(begin),
 			)
 		}(time.Now())
@@ -60,6 +68,22 @@ func makeStartSessionEndpoint(s service.SessionService) endpoint.Endpoint {
 		return &SessionStartResponse{
 			SessionId: sessionId,
 		}, nil
+	}
+}
+
+func makeEndSessionEndpoint(s service.SessionService) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		character, err := getCharacter(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.EndSession(*character)
+		if err != nil{
+			return nil, err
+		}
+
+		return &NoContentResponse{}, nil
 	}
 }
 

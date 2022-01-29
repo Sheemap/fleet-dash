@@ -5,6 +5,7 @@ import (
 	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"time"
 )
 
 type repository struct {
@@ -13,6 +14,7 @@ type repository struct {
 
 type Repository interface {
 	SaveSession(session *Session) error
+	EndSession(sessionID string) error
 	GetSession(sessionId string) (*Session, error)
 	GetCharacterActiveSession(characterID string) (*Session, error)
 	GetSessionByFleet(fleetID string) (*Session, error)
@@ -44,6 +46,15 @@ func (r *repository) SaveSession(session *Session) error {
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
 			return r.db.Create(session).Error
+		},
+	)
+	return err
+}
+
+func (r *repository) EndSession(sessionID string) error {
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Model(&Session{}).Where("id = ?", sessionID).Update("ended_at", time.Now()).Error
 		},
 	)
 	return err
