@@ -5,13 +5,18 @@ import (
 	"fleet-dash-core/data"
 	"fleet-dash-core/eveclient"
 	"fleet-dash-core/utilities"
+	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/go-kit/kit/log"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"strconv"
+	"time"
 )
 
 type sessionService struct {
 	repo data.Repository
+	fleetCache *ttlcache.Cache
+	logger log.Logger
 }
 
 var (
@@ -24,9 +29,19 @@ type SessionService interface {
 	GetCharacterActiveSession(token *jwt.Token) (*string, error)
 }
 
-func NewSessionService(repository data.Repository) SessionService {
+func NewSessionService(repository data.Repository, logger log.Logger) SessionService {
+	fleetCache := ttlcache.NewCache()
+	err := fleetCache.SetTTL(time.Second * 60)
+	if err != nil {
+		panic(err)
+	}
+
+	fleetCache.SkipTTLExtensionOnHit(true)
+
 	return &sessionService{
 		repo: repository,
+		fleetCache: fleetCache,
+		logger: logger,
 	}
 }
 
@@ -60,6 +75,7 @@ func (s *sessionService) StartSession(c Character) (string, error) {
 		return "", ErrSessionAlreadyRunning
 	}
 
+
 	newID := uuid.New().String()
 
 	newSession := &data.Session{
@@ -89,20 +105,50 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 		return &session.ID, nil
 	}
 
-	eveClient, err := eveclient.NewEveClient(token)
-	if err != nil {
-		return nil, err
+	// hit cache for fleet ID
+	strFleetID, err := s.fleetCache.Get(token.Raw)
+
+	// if not found, get from eve client
+	if err == ttlcache.ErrNotFound {
+		err = s.logger.Log("msg", "cache miss, fetching fleet from API", "characterID", charID)
+		if err != nil {
+			return nil, err
+		}
+
+		eveClient, err := eveclient.NewEveClient(token)
+		if err != nil {
+			return nil, err
+		}
+
+		fleet, err := eveClient.GetCurrentFleet()
+		if err != nil {
+			return nil, err
+		}
+
+		if fleet == nil {
+			// still cache if nil, means we aren't in fleet
+			err = s.fleetCache.Set(token.Raw, nil)
+			if err != nil {
+				return nil, err
+			}
+			return nil, nil
+		}
+
+		// if not nil, cache fleet id as string
+		strFleetID = strconv.FormatInt(*fleet.FleetID, 10)
+		err = s.fleetCache.Set(token.Raw, strFleetID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if strFleetID == nil {
+		return nil, ErrNotInFleet
 	}
 
-	fleet, err := eveClient.GetCurrentFleet()
-	if err != nil {
-		return nil, err
-	}
-	if fleet == nil {
-		return nil, nil
-	}
-	strFleetID := strconv.FormatInt(*fleet.FleetID, 10)
-	fleetSession, err := s.repo.GetSessionByFleet(strFleetID)
+	// cast our cached fleet id to string
+	fleetID := strFleetID.(string)
+
+	fleetSession, err := s.repo.GetSessionByFleet(fleetID)
 	if err != nil {
 		return nil, err
 	}

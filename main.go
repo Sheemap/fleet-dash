@@ -36,7 +36,7 @@ func main() {
 	repository := data.NewRepository()
 
 	eventService := service.NewEventService(repository)
-	sessionService := service.NewSessionService(repository)
+	sessionService := service.NewSessionService(repository, logger)
 
 	eventEndpoints := endpoints.MakeGrpcEndpoints(eventService, sessionService)
 	httpEndpoints := endpoints.MakeHttpEndpoints(sessionService)

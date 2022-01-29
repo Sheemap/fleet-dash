@@ -3,6 +3,7 @@ module fleet-dash-core
 go 1.16
 
 require (
+	github.com/ReneKroon/ttlcache/v2 v2.11.0
 	github.com/cockroachdb/cockroach-go/v2 v2.2.6
 	github.com/go-kit/kit v0.12.0
 	github.com/go-openapi/errors v0.20.1
