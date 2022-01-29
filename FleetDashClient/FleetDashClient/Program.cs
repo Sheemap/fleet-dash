@@ -18,7 +18,7 @@ if (!Directory.Exists(appLocation))
 }
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
+    .MinimumLevel.Information()
     .Enrich.WithExceptionDetails()
     .WriteTo.Console()
     .WriteTo.File($"{appLocation}/logs/log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7)

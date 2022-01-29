@@ -3,7 +3,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using EventAggregator.Blazor;
 using FleetDashClient.Models;
+using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 using FleetDashClient.Shared;
 using Newtonsoft.Json;
@@ -13,23 +15,25 @@ namespace FleetDashClient.ViewModels;
 
 public class EveLoginViewModel
 {
-    private const string ClientId = "NOPE";
-    private const string ClientSecret = "NOPE";
+    private const string ClientId = "f5359c448f2c444d960d1ce8d3047397";
+    private const string ClientSecret = "SMBDOxOp0flzin3bO0YObnoCVlaZ22ofBogIevwl";
     private const string RedirectUrl = "http://localhost:7845/eve-sso/callback";
     private const string TokenUrl = "https://login.eveonline.com/v2/oauth/token";
     private const string AuthUrlBase = "https://login.eveonline.com/v2/oauth/authorize";
     private readonly string[] Scopes = { "esi-fleets.read_fleet.v1", "esi-fleets.write_fleet.v1" };
     
-    private readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
     private readonly List<string> _validState = new();
     private CancellationTokenSource _cancellationTokenSource;
     private HttpListener _httpListener = new HttpListener();
     
     private readonly ICharacterService _characterService;
+    private readonly IEventAggregator _eventAggregator;
 
-    public EveLoginViewModel(ICharacterService characterService)
+    public EveLoginViewModel(ICharacterService characterService, IEventAggregator eventAggregator)
     {
         _characterService = characterService;
+        _eventAggregator = eventAggregator;
         _httpListener.Prefixes.Add(RedirectUrl + "/");
     }
     
@@ -148,7 +152,7 @@ public class EveLoginViewModel
                     }
                 }).Wait(_cancellationTokenSource.Token);
             }
-            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
+            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or OperationCanceledException)
             {
                 // Ignore
             }
@@ -221,5 +225,6 @@ public class EveLoginViewModel
                 };
                 await _characterService.AddCharacterAsync(newCharacter);
             }
+            await _eventAggregator.PublishAsync(new CharacterTokenRenewedEventArgs(splitSub[1]));
         }
 }

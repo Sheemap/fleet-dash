@@ -1,7 +1,9 @@
 ﻿using EveLogParser;
 using EveLogParser.Models.Events;
+using EventAggregator.Blazor;
 using FleetDashClient.Data;
 using FleetDashClient.Models;
+using FleetDashClient.Models.Events;
 using FleetDashClient.Models.Exceptions;
 using FleetDashClient.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -15,20 +17,22 @@ public class GrpcLogShipper : IDisposable
 {
     private readonly ILogParserService _logParserService;
     private readonly DataContext _dbContext;
+    private readonly FleetDashService.FleetDashServiceClient _client;
+    private readonly IEventAggregator _eventAggregator;
     
     private (string?, DateTimeOffset) _fleetData;
     private DateTimeOffset _lastBackOff = DateTimeOffset.MinValue;
     
-    private readonly FleetDashService.FleetDashServiceClient _client;
-    
     public GrpcLogShipper(
         ILogParserService logParserService,
         DataContext dataContext,
-        FleetDashService.FleetDashServiceClient client)
+        FleetDashService.FleetDashServiceClient client,
+        IEventAggregator aggregator)
     {
         _logParserService = logParserService;
         _dbContext = dataContext;
         _client = client;
+        _eventAggregator = aggregator;
 
         _logParserService.OnIncomingDamage += EveLogHandler;
         _logParserService.OnOutgoingDamage += EveLogHandler;
@@ -73,14 +77,15 @@ public class GrpcLogShipper : IDisposable
                 .FirstOrDefaultAsync(x => x.Id == args.CharacterId);
             if (character == null)
             {
+                Log.Error("Character not found in DB! ID: {CharacterId}", args.CharacterId);
                 return;
             }
             
             var token = character.Tokens.OrderByDescending(x => x.ExpiresAt).FirstOrDefault();
             if (token == null)
             {
-                // TODO: Inform UI that character has no token
                 Log.Warning("Character {CharacterId} has no token", character.Id);
+                await _eventAggregator.PublishAsync(new InvalidCharacterTokenEventArgs(character.Id));
                 return;
             }
 
@@ -91,6 +96,7 @@ public class GrpcLogShipper : IDisposable
             }
             catch (TokenRefreshException ex)
             {
+                await _eventAggregator.PublishAsync(new InvalidCharacterTokenEventArgs(character.Id));
                 Log.Warning(ex, "Failed to refresh token for character {CharacterId}", character.Id);
                 return;
             }
@@ -130,6 +136,7 @@ public class GrpcLogShipper : IDisposable
             try
             {
                 await _client.PostEveLogEventAsync(eveEvent, meta);
+                await _eventAggregator.PublishAsync(new LogStreamedEventArgs(args.CharacterId));
             }
             catch (RpcException ex)
             {

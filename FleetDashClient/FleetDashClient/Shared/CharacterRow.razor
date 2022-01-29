@@ -1,5 +1,11 @@
 ﻿@using FleetDashClient.Models
+@using EventAggregator.Blazor
+@using FleetDashClient.Models.Events
+@using Serilog
 @inherits ComponentBase
+@implements IHandle<CharacterStatusChangedEventArgs>
+
+@inject IEventAggregator _eventAggregator
 
 <div class="account-status">
     <Tooltip Text="@tooltipText">
@@ -8,7 +14,7 @@
 </div>
 <div class="account-name">@Character.Name</div>
 <div class="account-remove-btn">
-    @if (removeConfirming)
+    @if (_removeConfirming)
     {
         <button id="confirm-button" @onclick="@OnConfirmClick">Confirm</button>
         <button id="cancel-button" @onclick="@OnCancelClick">Cancel</button>
@@ -30,47 +36,69 @@
     [Parameter]
     public Action RefreshList { get; set; }
 
+    private CharacterStatus _currentStatus;
     private string statusImage;
     private string tooltipText;
 
-    private bool removeConfirming = false;
+    private DateTimeOffset _lastStreamed = DateTimeOffset.MinValue;
+
+    private bool _removeConfirming = false;
 
     protected override void OnInitialized()
     {
-        switch (Status)
+        _eventAggregator.Subscribe(this);
+        UpdateStatus(CharacterStatus.Ready);
+    }
+
+    private void UpdateStatus(CharacterStatus status)
+    {
+        switch (status)
         {
             case CharacterStatus.Ready:
                 statusImage = "/images/checkmark-circle-outline.svg";
                 tooltipText = "Ready and waiting";
+                _currentStatus = CharacterStatus.Ready;
                 break;
 
             case CharacterStatus.ActivelyStreaming:
                 statusImage = "/images/play-circle-outline.svg";
                 tooltipText = "Actively streaming";
+                _currentStatus = CharacterStatus.ActivelyStreaming;
                 break;
 
             case CharacterStatus.Error:
                 statusImage = "/images/alert-circle.svg";
-                tooltipText = "Error has occured";
+                tooltipText = "Error has occured! Please log in again.";
+                _currentStatus = CharacterStatus.Error;
                 break;
         }
+    }
+        
+    public Task HandleAsync(CharacterStatusChangedEventArgs args)
+    {
+        if (args.CharacterId == Character.Id)
+        {
+            UpdateStatus(args.Status);
+        }
+
+        return Task.CompletedTask;
     }
 
     private void OnRemoveAccount(MouseEventArgs mouseEventArgs)
     {
-        removeConfirming = true;
+        _removeConfirming = true;
     }
 
     private async Task OnConfirmClick(MouseEventArgs mouseEventArgs)
     {
         await DeleteCharacterHook(Character.Id);
-        removeConfirming = false;
+        _removeConfirming = false;
         RefreshList();
     }
 
     private void OnCancelClick(MouseEventArgs mouseEventArgs)
     {
-        removeConfirming = false;
+        _removeConfirming = false;
     }
 
 }

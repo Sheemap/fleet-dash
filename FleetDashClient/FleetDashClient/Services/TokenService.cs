@@ -7,8 +7,8 @@ namespace FleetDashClient.Services;
 
 public static class TokenService
 {
-    private const string ClientId = "NOPE";
-    private const string ClientSecret = "NOPE";
+    private const string ClientId = "f5359c448f2c444d960d1ce8d3047397";
+    private const string ClientSecret = "SMBDOxOp0flzin3bO0YObnoCVlaZ22ofBogIevwl";
     private const string TokenUrl = "https://login.eveonline.com/v2/oauth/token";
 
     public static async Task<Token> RefreshToken(Token token)
