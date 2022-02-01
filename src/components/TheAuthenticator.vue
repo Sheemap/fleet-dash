@@ -1,6 +1,19 @@
 <template>
-  <img v-if="authenticated" class="my-auto mr-5 rounded-full" v-bind:src="portrait_url" alt="Character Portrait"/>
+  <div v-if="authenticated">
+    <img v-if="authenticated" v-on:click="this.toggleContextMenu" class="my-3 mr-5 rounded-full cursor-pointer" v-bind:src="portrait_url" alt="Character Portrait"/>
+    <div v-if="contextMenu" class="bg-white text-black z-50 list-none divide-y divide-gray-100 rounded shadow my-4 fixed right-0 top-14 mx-5">
+      <div class="px-4 py-3">
+        <span class="block text-sm cursor-default">{{ this.character_name }}</span>
+      </div>
+      <ul class="py-1" aria-labelledby="dropdown">
+        <li>
+          <a v-on:click="this.signOut" class="text-sm hover:bg-gray-200 text-gray-700 block px-4 py-2 cursor-pointer">Sign out</a>
+        </li>
+      </ul>
+    </div>
+  </div>
   <a v-else v-bind:href="authUrl" target="_blank"><img class="m-5" src="../assets/eve-login.png" alt="Login with EVE Online" /></a>
+
 </template>
 
 <script>
@@ -33,6 +46,25 @@ export default {
       }
     })
     return { userStore, authenticated, authUrl, portrait_url };
+  },
+  data(){
+    return {
+      contextMenu: false,
+    }
+  },
+  methods: {
+    toggleContextMenu(){
+      this.contextMenu = !this.contextMenu;
+    },
+    signOut(){
+      this.userStore.signOut();
+      window.location.href = '/';
+    }
+  },
+  computed: {
+    character_name(){
+      return this.userStore.character_name;
+    }
   }
 }
 </script>

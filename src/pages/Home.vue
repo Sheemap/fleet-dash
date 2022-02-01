@@ -6,9 +6,11 @@ import TheNavBar from "../components/TheNavBar.vue";
 </script>
 
 <template>
-  <TheNavBar />
-  <img alt="Vue logo" src="../assets/logo.png" />
-  <HelloWorld msg="Hello Vue 3 + Vite" />
+  <div class="bg-zinc-900 h-screen text-slate-100">
+    <TheNavBar />
+    <img alt="Vue logo" src="../assets/logo.png" />
+  </div>
+
 </template>
 
 <script>

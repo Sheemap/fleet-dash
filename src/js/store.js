@@ -4,7 +4,6 @@ import { inject } from 'vue';
 export const useUserStore = defineStore('user', {
     state: () => {
         return {
-            name: '',
             auth_state: localStorage.getItem('auth_state') || '',
             _portrait_url: localStorage.getItem('portrait_url') || '',
             _token_set: JSON.parse(localStorage.getItem('token_set')) || {},
@@ -29,6 +28,12 @@ export const useUserStore = defineStore('user', {
         }
     },
     actions: {
+        signOut(){
+            localStorage.removeItem('auth_state')
+            localStorage.removeItem('portrait_url')
+            localStorage.removeItem('token_set')
+            this.resetState()
+        },
         setState(){
             this.auth_state = Math.random().toString(16).substr(2, 32);
             localStorage.setItem('auth_state', this.auth_state);
@@ -81,7 +86,7 @@ export const useUserStore = defineStore('user', {
                 params.append('grant_type', 'refresh_token');
                 params.append('redirect_uri', import.meta.env.VITE_EVE_REDIRECT_URI);
                 params.append('refresh_token', this._token_set.refresh_token);
-                axios.post('https://login.eveonline.com/oauth/token', params)
+                axios.post('https://login.eveonline.com/v2/oauth/token', params)
                     .then(res => {
                         this.setToken(res.data)
                         resolve(this._token_set);

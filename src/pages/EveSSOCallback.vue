@@ -46,9 +46,8 @@ export default {
 
 
     axios.post('https://login.eveonline.com/v2/oauth/token',params).then(response =>{
-      let tokenSet = userStore.setToken(response.data)
-
-
+      userStore.setToken(response.data)
+      window.location.href = '/';
     }).catch(error => {
       console.error(error);
       errorMessage.value = true;
