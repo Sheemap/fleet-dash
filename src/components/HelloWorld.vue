@@ -26,13 +26,27 @@ const count = ref(0)
     <a href="https://v3.vuejs.org/" target="_blank">Vue 3 Documentation</a>
   </p>
 
-  <button type="button" @click="count++">count is: {{ count }}</button>
+  <button type="button" @click="onClick">count is: </button>
+  <button type="button" @click="notClick">count is: </button>
   <p>
     Edit
     <code>components/HelloWorld.vue</code> to test hot module replacement.
   </p>
   <h1 class="text-3xl font-bold underline">    Hello world!  </h1>
 </template>
+
+<script>
+export default {
+  name: "HelloWorld",
+  methods: {
+    onClick() {
+
+    },
+    notClick(){
+    }
+  }
+}
+</script>
 
 <style scoped>
 a {
