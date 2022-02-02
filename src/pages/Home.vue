@@ -11,13 +11,3 @@ import TheNavBar from "../components/TheNavBar.vue";
   </div>
 
 </template>
-
-<script>
-export default {
-  name: "Home",
-}
-</script>
-
-<style>
-
-</style>

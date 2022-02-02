@@ -7,7 +7,6 @@ import { useUserStore } from "../js/store";
 import { inject, ref } from 'vue';
 
 export default {
-  name: "EveSSOCallback",
   props:{
     queryParams: {
       type: Object,

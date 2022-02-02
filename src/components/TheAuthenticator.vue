@@ -1,3 +1,31 @@
+<script setup>
+  import {useUserStore} from "../js/store";
+  import {ref} from "vue";
+
+  const userStore = useUserStore();
+
+  let authUrl = ref('');
+  let authenticated = ref(false);
+  let portrait_url = ref('');
+
+  userStore.getActiveToken().then(res =>{
+    if (Object.keys(res).length === 0){
+      authenticated.value = false;
+      let auth_state = userStore.setState();
+      authUrl.value =`https://login.eveonline.com/v2/oauth/authorize?response_type=code` +
+          `&redirect_uri=${import.meta.env.VITE_EVE_REDIRECT_URI}` +
+          `&client_id=${import.meta.env.VITE_EVE_CLIENT_ID}` +
+          `&scope=${import.meta.env.VITE_EVE_SCOPES}` +
+          `&state=${auth_state}`;
+    }else{
+      authenticated.value = true;
+      userStore.getPortraitUrl().then(res =>{
+        portrait_url.value = res;
+      })
+    }
+  })
+</script>
+
 <template>
   <div v-if="authenticated">
     <img v-if="authenticated" v-on:click="this.toggleContextMenu" class="my-3 mr-5 rounded-full cursor-pointer" v-bind:src="portrait_url" alt="Character Portrait"/>
@@ -21,32 +49,6 @@ import { ref } from 'vue';
 import { useUserStore } from "../js/store";
 
 export default {
-  name: "TheAuthenticator",
-  setup(props, context){
-    const userStore = useUserStore();
-
-    let authUrl = ref('');
-    let authenticated = ref(false);
-    let portrait_url = ref('');
-
-    userStore.getActiveToken().then(res =>{
-      if (Object.keys(res).length === 0){
-        authenticated.value = false;
-        let auth_state = userStore.setState();
-        authUrl.value =`https://login.eveonline.com/v2/oauth/authorize?response_type=code` +
-            `&redirect_uri=${import.meta.env.VITE_EVE_REDIRECT_URI}` +
-            `&client_id=${import.meta.env.VITE_EVE_CLIENT_ID}` +
-            `&scope=${import.meta.env.VITE_EVE_SCOPES}` +
-            `&state=${auth_state}`;
-      }else{
-        authenticated.value = true;
-        userStore.getPortraitUrl().then(res =>{
-          portrait_url.value = res;
-        })
-      }
-    })
-    return { userStore, authenticated, authUrl, portrait_url };
-  },
   data(){
     return {
       contextMenu: false,
@@ -68,7 +70,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-
-</style>
