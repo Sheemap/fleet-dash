@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
+	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"time"
@@ -19,6 +20,7 @@ type Repository interface {
 	GetCharacterActiveSession(characterID string) (*Session, error)
 	GetSessionByFleet(fleetID string) (*Session, error)
 	SaveEveLogEvent(event *Event) error
+	GenerateEventStreamTicket(sessionId string) (*EventStreamTicket, error)
 }
 
 func NewRepository() Repository {
@@ -34,7 +36,7 @@ func initGorm() *gorm.DB{
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&Session{}, &Event{})
+	err = db.AutoMigrate(&Session{}, &Event{}, &EventStreamTicket{})
 	if err != nil {
 		panic(err)
 	}
@@ -103,4 +105,27 @@ func (r *repository) SaveEveLogEvent(event *Event) error {
 		},
 	)
 	return err
+}
+
+func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTicket, error) {
+	ticket := uuid.New().String()
+
+	newTicket := &EventStreamTicket{
+		BaseModel: BaseModel{
+			ID:	uuid.New().String(),
+		},
+		SessionID: sessionID,
+		Ticket: ticket,
+	}
+
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Create(newTicket).Error
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return newTicket, err
 }

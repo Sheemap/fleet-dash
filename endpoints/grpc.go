@@ -20,7 +20,7 @@ type GrpcEndpoints struct {
 
 type EmptyResponse struct {}
 
-func MakeGrpcEndpoints(es service.EventService, ss service.SessionService, l log.Logger) GrpcEndpoints {
+func MakeGrpcEndpoints(es service.EventIngestionService, ss service.SessionService, l log.Logger) GrpcEndpoints {
 
 	postEveLogEventEndpoint := makePostEveLogEventEndpoint(es, ss)
 	postEveLogEventEndpoint = requireAuthenticated(postEveLogEventEndpoint)
@@ -33,7 +33,7 @@ func MakeGrpcEndpoints(es service.EventService, ss service.SessionService, l log
 	}
 }
 
-func makePostEveLogEventEndpoint(es service.EventService, ss service.SessionService) endpoint.Endpoint {
+func makePostEveLogEventEndpoint(es service.EventIngestionService, ss service.SessionService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		token := ctx.Value("character_access_token")
 		if token == nil {

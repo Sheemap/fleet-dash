@@ -115,6 +115,9 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 	if err != nil {
 		return nil, err
 	}
+	if fleetID == nil {
+		return nil, ErrNotInFleet
+	}
 
 	fleetSession, err := s.repo.GetSessionByFleet(*fleetID)
 	if err != nil {

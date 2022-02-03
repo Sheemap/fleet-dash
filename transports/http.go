@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/transport"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"net/http"
 	"strings"
 )
@@ -24,20 +25,35 @@ func MakeHTTPHandler(e endpoints.HttpEndpoints, logger log.Logger, validator uti
 
 	api := r.PathPrefix("/api").Subrouter()
 
-
-	api.Methods("POST").Path("/session/start").Handler(httptransport.NewServer(
+	api.Methods(http.MethodPost).Path("/event-stream/ticket").Handler(httptransport.NewServer(
+		e.EventStreamTicket,
+		decodeEmptyRequest,
+		encodeResponse,
+		options...,
+	))
+	api.Methods(http.MethodPost).Path("/session/start").Handler(httptransport.NewServer(
 		e.StartSession,
 		decodeEmptyRequest,
 		encodeResponse,
 		options...,
 	))
-	api.Methods("POST").Path("/session/end").Handler(httptransport.NewServer(
+	api.Methods(http.MethodPost).Path("/session/end").Handler(httptransport.NewServer(
 		e.EndSession,
 		decodeEmptyRequest,
 		encodeNoContentResponse,
 		options...,
 	))
-	return r
+
+	// Set up CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowCredentials: true,
+		AllowedHeaders: []string{"*"},
+	})
+
+	handler := c.Handler(r)
+
+	return handler
 }
 
 func decodeEmptyRequest(_ context.Context, _ *http.Request) (interface{}, error) {

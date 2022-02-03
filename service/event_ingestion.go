@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-type eventService struct{
+type eventIngestionService struct{
 	repo data.Repository
 }
 
-type EventService interface {
+type EventIngestionService interface {
 	PersistEveLogEvent(sessionID string, event EveLogEvent) error
 }
 
@@ -27,13 +27,13 @@ type EveLogEvent struct {
 	Alliance string
 }
 
-func NewEventService(r data.Repository) EventService {
-	return &eventService{
+func NewEventIngestionService(r data.Repository) EventIngestionService {
+	return &eventIngestionService{
 		repo: r,
 	}
 }
 
-func (s *eventService) PersistEveLogEvent(sessionID string, e EveLogEvent) error {
+func (s *eventIngestionService) PersistEveLogEvent(sessionID string, e EveLogEvent) error {
 	event := data.Event{
 		BaseModel: data.BaseModel{ID: uuid.New().String()},
 		SessionID: sessionID,

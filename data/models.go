@@ -18,6 +18,7 @@ type Session struct {
 	FleetID string
 
 	Events []Event
+	StreamTickets []EventStreamTicket
 }
 
 type Event struct {
@@ -34,4 +35,11 @@ type Event struct {
 	Application string
 	Corporation string
 	Alliance string
+}
+
+type EventStreamTicket struct {
+	BaseModel
+
+	SessionID string
+	Ticket string
 }
