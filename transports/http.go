@@ -25,6 +25,8 @@ func MakeHTTPHandler(e endpoints.HttpEndpoints, logger log.Logger, validator uti
 
 	api := r.PathPrefix("/api").Subrouter()
 
+	api.Methods(http.MethodGet).Path("/event-stream").HandlerFunc(e.EventStream)
+
 	api.Methods(http.MethodPost).Path("/event-stream/ticket").Handler(httptransport.NewServer(
 		e.EventStreamTicket,
 		decodeEmptyRequest,

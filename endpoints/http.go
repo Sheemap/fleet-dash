@@ -7,6 +7,8 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/gorilla/websocket"
+	"net/http"
 	"time"
 )
 
@@ -16,6 +18,7 @@ var (
 
 type HttpEndpoints struct{
 	EventStreamTicket endpoint.Endpoint
+	EventStream func(http.ResponseWriter, *http.Request)
 	StartSession endpoint.Endpoint
 	EndSession endpoint.Endpoint
 }
@@ -35,6 +38,8 @@ func MakeHttpEndpoints(l log.Logger, s service.SessionService, es service.EventS
 	streamTicketEndpoint = requireAuthenticated(streamTicketEndpoint)
 	streamTicketEndpoint = loggingMiddleware(streamTicketEndpoint, l, "generateStreamTicket")
 
+	eventStream := makeEventStream(es)
+
 	startSessionEndpoint := makeStartSessionEndpoint(s)
 	startSessionEndpoint = requireAuthenticated(startSessionEndpoint)
 	startSessionEndpoint = loggingMiddleware(startSessionEndpoint, l, "startSession")
@@ -45,6 +50,7 @@ func MakeHttpEndpoints(l log.Logger, s service.SessionService, es service.EventS
 
 	return HttpEndpoints{
 		EventStreamTicket: streamTicketEndpoint,
+		EventStream: eventStream,
 		StartSession: startSessionEndpoint,
 		EndSession: endSessionEndpoint,
 	}
@@ -85,6 +91,37 @@ func makeEventStreamTicketEndpoint(s service.SessionService, es service.EventStr
 		return &GenerateTicketResponse{
 			Ticket: *ticket,
 		}, nil
+	}
+}
+
+func makeEventStream(es service.EventStreamService) func (w http.ResponseWriter, r *http.Request){
+	return func (w http.ResponseWriter, r *http.Request) {
+		ticket := r.URL.Query().Get("ticket")
+		activeTicket, err := es.GetActiveTicket(ticket)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if activeTicket == nil {
+			http.Error(w, "ticket not active", http.StatusBadRequest)
+			return
+		}
+
+		upgrader := websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+
+		err = es.RegisterStream(activeTicket.SessionID, conn)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

@@ -15,6 +15,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/rs/cors v1.8.2
 	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d
 	google.golang.org/grpc v1.43.0

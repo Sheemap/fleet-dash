@@ -21,6 +21,8 @@ type Repository interface {
 	GetSessionByFleet(fleetID string) (*Session, error)
 	SaveEveLogEvent(event *Event) error
 	GenerateEventStreamTicket(sessionId string) (*EventStreamTicket, error)
+	GetActiveTicket(ticket string) (*EventStreamTicket, error)
+	GetEvents(since time.Time) ([]*Event, error)
 }
 
 func NewRepository() Repository {
@@ -108,14 +110,11 @@ func (r *repository) SaveEveLogEvent(event *Event) error {
 }
 
 func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTicket, error) {
-	ticket := uuid.New().String()
-
 	newTicket := &EventStreamTicket{
 		BaseModel: BaseModel{
 			ID:	uuid.New().String(),
 		},
 		SessionID: sessionID,
-		Ticket: ticket,
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
@@ -128,4 +127,27 @@ func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTi
 	}
 
 	return newTicket, err
+}
+
+func (r *repository) GetActiveTicket(ticket string) (*EventStreamTicket, error){
+	var stream EventStreamTicket
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Model(&EventStreamTicket{}).Joins("JOIN sessions ON event_stream_tickets.session_id = sessions.id").Where("sessions.ended_at IS NULL").Where("event_stream_tickets.id = ?", ticket).First(&stream).Error
+		},
+	)
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &stream, err
+}
+
+func (r *repository) GetEvents(since time.Time) ([]*Event, error){
+	var events []*Event
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Where("created_at > ?", since).Find(&events).Error
+		},
+	)
+	return events, err
 }

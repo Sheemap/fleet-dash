@@ -41,5 +41,4 @@ type EventStreamTicket struct {
 	BaseModel
 
 	SessionID string
-	Ticket string
 }
