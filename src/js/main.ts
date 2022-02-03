@@ -3,29 +3,28 @@ import NotFound from '../pages/NotFound.vue'
 import EveSSOCallback from '../pages/EveSSOCallback.vue'
 import '../index.css'
 
-import { createApp, h } from 'vue'
+import {Component, createApp, h, RendererElement, RendererNode, VNode} from 'vue'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 import { createPinia } from 'pinia'
 
-const routes = {
-    '/': Home,
-    '/eve-sso/callback': EveSSOCallback,
-}
+const routes = new Map<string, Component>();
+routes.set('/', Home);
+routes.set('/eve-sso/callback', EveSSOCallback);
 
-const SimpleRouter = {
+const SimpleRouter : Component = {
     data: () => ({
         currentRoute: window.location.pathname
     }),
 
     computed: {
-        CurrentComponent() {
-            return routes[this.currentRoute] || NotFound
+        CurrentComponent() : Component {
+            return routes.get(this.currentRoute) || NotFound
         }
     },
 
-    render() {
+    render() : VNode<RendererNode, RendererElement, {}> {
         let queryParams = window.location.search
             .substring(1)
             .split('&')

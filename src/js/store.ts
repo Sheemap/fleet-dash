@@ -1,12 +1,25 @@
 import { defineStore } from 'pinia';
 import { inject } from 'vue';
+import {Axios, AxiosStatic} from "axios";
+
+type TokenSet = {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+};
+
+type ApiTokenSet = {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+};
 
 export const useUserStore = defineStore('user', {
     state: () => {
         return {
             auth_state: localStorage.getItem('auth_state') || '',
             _portrait_url: localStorage.getItem('portrait_url') || '',
-            _token_set: JSON.parse(localStorage.getItem('token_set')) || {},
+            _token_set: JSON.parse(localStorage.getItem('token_set') || "{}") || {},
         }
     },
     getters: {
@@ -43,7 +56,7 @@ export const useUserStore = defineStore('user', {
             this.auth_state = '';
             localStorage.removeItem('auth_state');
         },
-        setToken(tokenSet){
+        setToken(tokenSet : ApiTokenSet){
             this._token_set = {
                 access_token: tokenSet.access_token,
                 refresh_token: tokenSet.refresh_token,
@@ -54,7 +67,7 @@ export const useUserStore = defineStore('user', {
 
             return this._token_set;
         },
-        getActiveToken(){
+        getActiveToken() : Promise<TokenSet|Object> {
             return new Promise((resolve, reject) => {
                 // If no tokenset, resolve with empty
                 if (Object.keys(this._token_set).length === 0) {
@@ -72,13 +85,13 @@ export const useUserStore = defineStore('user', {
                 }
             });
         },
-        refreshToken() {
+        refreshToken() : Promise<TokenSet|Object> {
             return new Promise((resolve, reject) => {
                 if (Object.keys(this._token_set).length === 0) {
                     resolve({});
                 }
 
-                const axios = inject('axios');
+                const axios = inject('axios') as AxiosStatic;
 
                 const params = new URLSearchParams();
                 params.append('client_id', import.meta.env.VITE_EVE_CLIENT_ID);
@@ -103,24 +116,30 @@ export const useUserStore = defineStore('user', {
             }
 
             return new Promise((resolve, reject) => {
-                let token = this.getActiveToken();
-
-                let charID = this.character_id;
-                // Get the portrait url
-                fetch(`https://esi.evetech.net/latest/characters/${charID}/portrait/`, {
-                    headers: {
-                        'Authorization': `Bearer ${token.access_token}`
+                this.getActiveToken().then(maybeToken => {
+                    if(Object.keys(maybeToken).length === 0){
+                        reject('');
                     }
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        this._portrait_url = data.px64x64;
-                        localStorage.setItem('portrait_url', data.px64x64);
-                        resolve(data.px64x64);
+
+                    let token = maybeToken as TokenSet;
+
+                    let charID = this.character_id;
+                    // Get the portrait url
+                    fetch(`https://esi.evetech.net/latest/characters/${charID}/portrait/`, {
+                        headers: {
+                            'Authorization': `Bearer ${token.access_token}`
+                        }
                     })
-                    .catch(err => {
-                        console.error(err);
-                        resolve('');
+                        .then(res => res.json())
+                        .then(data => {
+                            this._portrait_url = data.px64x64;
+                            localStorage.setItem('portrait_url', data.px64x64);
+                            resolve(data.px64x64);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            resolve('');
+                        });
                     });
             });
         },

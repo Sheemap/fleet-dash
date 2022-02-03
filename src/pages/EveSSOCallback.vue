@@ -4,9 +4,9 @@
 
 <script>
 import { useUserStore } from "../js/store";
-import { inject, ref } from 'vue';
+import { defineComponent, inject, ref } from 'vue';
 
-export default {
+const component = defineComponent({
   props:{
     queryParams: {
       type: Object,
@@ -54,7 +54,9 @@ export default {
 
     return { errorMessage }
   },
-}
+});
+
+export default component;
 </script>
 
 <style scoped>
