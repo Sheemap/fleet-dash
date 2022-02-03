@@ -8,21 +8,21 @@
   let authenticated = ref(false);
   let portrait_url = ref('');
 
-  userStore.getActiveToken().then(res =>{
-    if (Object.keys(res).length === 0){
-      authenticated.value = false;
-      let auth_state = userStore.setState();
-      authUrl.value =`https://login.eveonline.com/v2/oauth/authorize?response_type=code` +
-          `&redirect_uri=${import.meta.env.VITE_EVE_REDIRECT_URI}` +
-          `&client_id=${import.meta.env.VITE_EVE_CLIENT_ID}` +
-          `&scope=${import.meta.env.VITE_EVE_SCOPES}` +
-          `&state=${auth_state}`;
-    }else{
+  userStore.getActiveToken().then(_ =>{
       authenticated.value = true;
       userStore.getPortraitUrl().then(res =>{
         portrait_url.value = res;
       })
-    }
+  })
+  .catch(_ =>{
+    // No token stored
+    authenticated.value = false;
+    let auth_state = userStore.setState();
+    authUrl.value =`https://login.eveonline.com/v2/oauth/authorize?response_type=code` +
+        `&redirect_uri=${import.meta.env.VITE_EVE_REDIRECT_URI}` +
+        `&client_id=${import.meta.env.VITE_EVE_CLIENT_ID}` +
+        `&scope=${import.meta.env.VITE_EVE_SCOPES}` +
+        `&state=${auth_state}`;
   })
 </script>
 

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { inject } from 'vue';
 import {AxiosStatic} from "axios";
 
-type TokenSet = {
+export type TokenSet = {
     access_token: string;
     refresh_token: string;
     expires_at: number;
