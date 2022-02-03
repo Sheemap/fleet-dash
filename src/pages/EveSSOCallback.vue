@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { useUserStore } from "../js/store";
+import { useUserStore } from "../js/userStore";
 import { defineComponent, inject, ref } from 'vue';
 
 const component = defineComponent({

@@ -1,5 +1,5 @@
 <script setup>
-  import {useUserStore} from "../js/store";
+  import {useUserStore} from "../js/userStore";
   import {ref} from "vue";
 
   const userStore = useUserStore();
@@ -46,7 +46,7 @@
 
 <script>
 import { ref } from 'vue';
-import { useUserStore } from "../js/store";
+import { useUserStore } from "../js/userStore";
 
 export default {
   data(){

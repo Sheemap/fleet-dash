@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { inject } from 'vue';
-import {Axios, AxiosStatic} from "axios";
+import {AxiosStatic} from "axios";
 
 type TokenSet = {
     access_token: string;
@@ -67,11 +67,11 @@ export const useUserStore = defineStore('user', {
 
             return this._token_set;
         },
-        getActiveToken() : Promise<TokenSet|Object> {
+        getActiveToken() : Promise<TokenSet> {
             return new Promise((resolve, reject) => {
-                // If no tokenset, resolve with empty
+                // If no tokenset, reject
                 if (Object.keys(this._token_set).length === 0) {
-                    resolve({});
+                    reject();
                 }
                 // If tokenset is not expired or close, return it
                 else if (this._token_set.expires_at > (Date.now() / 1000) - 60) {
@@ -81,14 +81,14 @@ export const useUserStore = defineStore('user', {
                 else {
                     this.refreshToken()
                         .then(resolve)
-                        .catch(err => resolve({}));
+                        .catch(reject);
                 }
             });
         },
-        refreshToken() : Promise<TokenSet|Object> {
+        refreshToken() : Promise<TokenSet> {
             return new Promise((resolve, reject) => {
                 if (Object.keys(this._token_set).length === 0) {
-                    resolve({});
+                    reject();
                 }
 
                 const axios = inject('axios') as AxiosStatic;
@@ -116,13 +116,7 @@ export const useUserStore = defineStore('user', {
             }
 
             return new Promise((resolve, reject) => {
-                this.getActiveToken().then(maybeToken => {
-                    if(Object.keys(maybeToken).length === 0){
-                        reject('');
-                    }
-
-                    let token = maybeToken as TokenSet;
-
+                this.getActiveToken().then(token => {
                     let charID = this.character_id;
                     // Get the portrait url
                     fetch(`https://esi.evetech.net/latest/characters/${charID}/portrait/`, {
@@ -140,6 +134,10 @@ export const useUserStore = defineStore('user', {
                             console.error(err);
                             resolve('');
                         });
+                })
+                    .catch(err => {
+                        console.error(err);
+                        resolve('');
                     });
             });
         },
