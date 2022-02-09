@@ -7,7 +7,8 @@
 
   userStore.getActiveToken().then(tokenSet => {
     eventStore.getStreamTicket(tokenSet).then(ticket => {
-      const ws = new WebSocket(`ws://${import.meta.env.VITE_FLEETDASH_CORE_URL}/api/event-stream?ticket=${ticket}`);
+      const socketScheme = import.meta.env.VITE_FLEETDASH_CORE_SCHEME === 'https' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${socketScheme}://${import.meta.env.VITE_FLEETDASH_CORE_URL}/api/event-stream?ticket=${ticket}`);
 
       ws.addEventListener('open', function open() {
         console.log('Connection has been established.');
