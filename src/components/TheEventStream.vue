@@ -12,14 +12,14 @@
 
       ws.addEventListener('open', function open() {
         console.log('Connection has been established.');
-    });
+      });
 
       ws.addEventListener('message', function incoming(data) {
         console.log(data.data);
       });
 
-      ws.addEventListener('close', function close() {
-        console.log('Connection has been closed.');
+      ws.addEventListener('close', function close(event) {
+        console.log('Connection has been closed. Reason:', event.reason);
       });
     });
   });
