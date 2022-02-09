@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
@@ -31,8 +32,6 @@ func main() {
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
-
-
 	repository := data.NewRepository()
 
 	eventIngestionService := service.NewEventIngestionService(repository)
@@ -53,50 +52,32 @@ func main() {
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 
-	grpcListener, err := net.Listen("tcp", ":50051")
+	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		logger.Log("during", "Listen", "err", err)
 		os.Exit(1)
 	}
 
+	// Use cmux to liston for both HTTP and gRPC.
+	m := cmux.New(listener)
+
+	grpcListener := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
+
+	httpListener := m.Match(cmux.Any())
+
 	go func() {
 		baseServer := grpc.NewServer()
 		pb.RegisterFleetDashServiceServer(baseServer, grpcServer)
-		level.Info(logger).Log("transport", "gRPC", "addr", ":50051")
+		level.Info(logger).Log("transport", "gRPC", "addr", ":8080")
 		errs <- baseServer.Serve(grpcListener)
 	}()
 
 	go func() {
 		logger.Log("transport", "HTTP", "addr", ":8080")
-		errs <- http.ListenAndServe(":8080", httpServer)
+		errs <- http.Serve(httpListener, httpServer)
 	}()
 
-	level.Error(logger).Log("exit", <-errs)
+	errs <- m.Serve()
 
-	//db := data.Init()
-	//
-	//listener, err := net.Listen("tcp", "0.0.0.0:50051")
-	//if err != nil {
-	//	log.Fatalf("failed to listen: %v", err)
-	//}
-	//fmt.Println("grpc listening :50051")
-	//
-	//s := grpc.NewServer()
-	//protobuf.RegisterFleetDashServiceServer(s, &server{})
-	//
-	//go func() {
-	//	err := s.Serve(listener)
-	//	if err != nil {
-	//		log.Fatalf("failed to serve: %v", err)
-	//	}
-	//}()
-	//
-	//r := mux.NewRouter()
-	//
-	//apiRouter := r.PathPrefix("/api").Subrouter()
-	//api.RegisterRoutes(apiRouter, db)
-	//
-	//fmt.Println("https listening :18443")
-	//err = http.ListenAndServeTLS(":18443", "ssl/ca.crt", "ssl/ca.key", r)
-	//fmt.Println(err)
+	level.Error(logger).Log("exit", <-errs)
 }

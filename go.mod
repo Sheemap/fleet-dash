@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/rs/cors v1.8.2
+	github.com/soheilhy/cmux v0.1.5
 	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d
 	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
