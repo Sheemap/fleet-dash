@@ -12,6 +12,15 @@
 
       ws.addEventListener('open', function open() {
         console.log('Connection has been established.');
+
+        function timeoutFunc() {
+          ws.send(JSON.stringify({
+            type: 'ping'
+          }));
+          setTimeout(timeoutFunc, 5000);
+        }
+
+        timeoutFunc();
       });
 
       ws.addEventListener('message', function incoming(data) {
@@ -22,11 +31,6 @@
         console.log('Connection has been closed.');
         console.log(event);
       });
-
-      ws.onerror = function error(event) {
-        console.log('Connection has errored.');
-        console.log(event);
-      };
     });
   });
 </script>
