@@ -23,10 +23,10 @@
         console.log(event);
       });
 
-      ws.addEventListener('error', function error(event) {
+      ws.onerror = function error(event) {
         console.log('Connection has errored.');
         console.log(event);
-      });
+      };
     });
   });
 </script>
