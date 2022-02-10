@@ -8,6 +8,7 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 import { createPinia } from 'pinia'
+import mitt from "mitt";
 
 const routes = new Map<string, Component>();
 routes.set('/', Home);
@@ -34,11 +35,13 @@ const SimpleRouter : Component = {
     }
 }
 
+const emitter = mitt()
 const app = createApp(SimpleRouter)
 
 app.use(createPinia())
 app.use(VueAxios, axios)
 
 app.provide('axios', app.config.globalProperties.axios)
+app.provide('emitter', emitter)
 
 app.mount('#app')
