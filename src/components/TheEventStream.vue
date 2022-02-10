@@ -19,7 +19,8 @@
       });
 
       ws.addEventListener('close', function close(event) {
-        console.log('Connection has been closed. Reason:', event.reason);
+        console.log('Connection has been closed.');
+        console.log(event);
       });
     });
   });
