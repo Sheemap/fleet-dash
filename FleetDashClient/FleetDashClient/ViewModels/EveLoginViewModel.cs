@@ -20,7 +20,7 @@ public class EveLoginViewModel
     private const string RedirectUrl = "http://localhost:7845/eve-sso/callback";
     private const string TokenUrl = "https://login.eveonline.com/v2/oauth/token";
     private const string AuthUrlBase = "https://login.eveonline.com/v2/oauth/authorize";
-    private readonly string[] Scopes = { "esi-fleets.read_fleet.v1", "esi-fleets.write_fleet.v1" };
+    private readonly string[] Scopes = { "esi-fleets.read_fleet.v1" };
     
     private readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
     private readonly List<string> _validState = new();

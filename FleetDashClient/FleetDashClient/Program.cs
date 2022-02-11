@@ -59,7 +59,7 @@ builder.Services.AddScoped<GrpcLogShipper>();
 
 builder.Services.AddGrpcClient<FleetDashService.FleetDashServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:50051");
+    o.Address = new Uri("https://api.fleetdash.space");
 });
 
 builder.Services.AddHostedService<WorkerService>();
