@@ -4,7 +4,9 @@ import {TokenSet} from "./userStore";
 export const useEventStore = defineStore('event', {
     state: () => {
         return {
-            event_log: [],
+            active: false,
+            stream_failure_count: 0,
+            last_stream_failure_time: 0,
             _stream_ticket: localStorage.getItem('stream_ticket') || '',
         }
     },
@@ -32,9 +34,10 @@ export const useEventStore = defineStore('event', {
                         });
                 }
             });
-
-
-
-        }
+        },
+        resetTicket() {
+            this._stream_ticket = '';
+            localStorage.removeItem('stream_ticket');
+        },
     }
 });

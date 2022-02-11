@@ -6,15 +6,23 @@ import TheEventStream from "../components/TheEventStream.vue";
 import TotalDamageOut from "../components/TotalDamageOut.vue";
 import TotalDamageIn from "../components/TotalDamageIn.vue";
 import TotalShieldIn from "../components/TotalShieldIn.vue";
+
+import { useEventStore } from "../js/eventStore";
+import {ref} from "vue";
+
+const eventStore = useEventStore();
 </script>
 
 <template>
   <div class="bg-zinc-900 h-screen text-slate-100">
+
     <TheNavBar />
-    <TotalDamageOut />
-    <TotalDamageIn />
-    <TotalShieldIn />
+    <div v-if="eventStore.active">
+      <TotalDamageOut />
+      <TotalDamageIn />
+      <TotalShieldIn />
+    </div>
+
     <TheEventStream />
   </div>
-
 </template>
