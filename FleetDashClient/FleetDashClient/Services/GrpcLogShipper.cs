@@ -22,6 +22,7 @@ public class GrpcLogShipper : IDisposable
     
     private (string?, DateTimeOffset) _fleetData;
     private DateTimeOffset _lastBackOff = DateTimeOffset.MinValue;
+    private SemaphoreSlim _semaphore = new SemaphoreSlim(1);
     
     public GrpcLogShipper(
         ILogParserService logParserService,
@@ -50,16 +51,28 @@ public class GrpcLogShipper : IDisposable
         _logParserService.OnOutgoingNeut += EveLogHandler;
     }
 
-    private async Task<Token> GetFreshToken(Token token, string characterId)
+    private async Task<Token?> GetFreshToken(string characterId)
     {
-        if (token.ExpiresAt > DateTimeOffset.Now.AddMinutes(1)) return token;
+        await _semaphore.WaitAsync();
         
+        var token = _dbContext.Tokens
+            .OrderByDescending(x => x.ExpiresAt)
+            .FirstOrDefault(x => x.CharacterId == characterId);
+        if (token == null)
+        {
+            return null;
+        }
+     
+        if (token.ExpiresAt > DateTimeOffset.Now.AddMinutes(1)) return token;
+
         // refresh token
         var newToken = await TokenService.RefreshToken(token);
         newToken.CharacterId = characterId;
         _dbContext.Tokens.Add(newToken);
         await _dbContext.SaveChangesAsync();
 
+        _semaphore.Release();
+        
         return newToken;
     }
 
@@ -73,26 +86,23 @@ public class GrpcLogShipper : IDisposable
         Task.Run(async () =>
         {
             var character = await _dbContext.Characters
-                .Include(x => x.Tokens)
                 .FirstOrDefaultAsync(x => x.Id == args.CharacterId);
             if (character == null)
             {
                 Log.Error("Character not found in DB! ID: {CharacterId}", args.CharacterId);
                 return;
             }
-            
-            var token = character.Tokens.OrderByDescending(x => x.ExpiresAt).FirstOrDefault();
-            if (token == null)
-            {
-                Log.Warning("Character {CharacterId} has no token", character.Id);
-                await _eventAggregator.PublishAsync(new InvalidCharacterTokenEventArgs(character.Id));
-                return;
-            }
 
-            Token freshToken;
+            Token? freshToken;
             try
             {
-                freshToken = await GetFreshToken(token, character.Id);
+                freshToken = await GetFreshToken(character.Id);
+                if (freshToken == null)
+                {
+                    Log.Warning("Character {CharacterId} has no token", character.Id);
+                    await _eventAggregator.PublishAsync(new InvalidCharacterTokenEventArgs(character.Id));
+                    return;
+                }
             }
             catch (TokenRefreshException ex)
             {
