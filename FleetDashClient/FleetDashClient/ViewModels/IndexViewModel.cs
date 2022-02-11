@@ -1,19 +1,8 @@
-﻿using System.Diagnostics;
-using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
-using RestSharp;
-using System;
-using System.Collections.ObjectModel;
-using System.IdentityModel.Tokens.Jwt;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Collections.Concurrent;
 using EventAggregator.Blazor;
 using FleetDashClient.Models;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
-using IdentityModel.OidcClient;
-using Newtonsoft.Json;
-using RestSharp.Authenticators;
 
 namespace FleetDashClient.ViewModels;
 
@@ -21,7 +10,7 @@ public class IndexViewModel : IDisposable, IHandle<LogStreamedEventArgs>, IHandl
 {
     public List<Character> Characters { get; set; } = new();
     
-    private readonly Dictionary<string, (CharacterStatus,DateTimeOffset)> _lastLogStream = new();
+    private readonly ConcurrentDictionary<string, (CharacterStatus,DateTimeOffset)> _lastLogStream = new();
 
     private readonly ICharacterService _characterService;
     private readonly IEventAggregator _eventAggregator;
@@ -76,18 +65,10 @@ public class IndexViewModel : IDisposable, IHandle<LogStreamedEventArgs>, IHandl
     
     public Task HandleAsync(LogStreamedEventArgs args)
     {
-        if (!_lastLogStream.ContainsKey(args.CharacterId))
-        {
-            _lastLogStream.Add(args.CharacterId, (CharacterStatus.ActivelyStreaming, DateTimeOffset.Now));
-        }
-        else
-        {
-            _lastLogStream[args.CharacterId] = (CharacterStatus.ActivelyStreaming, DateTimeOffset.Now);
-        }
-        
+        _lastLogStream.AddOrUpdate(args.CharacterId, (CharacterStatus.ActivelyStreaming, DateTimeOffset.Now),
+            (_, _) => (CharacterStatus.ActivelyStreaming, DateTimeOffset.Now));
+
         return _eventAggregator.PublishAsync(new CharacterStatusChangedEventArgs(args.CharacterId, CharacterStatus.ActivelyStreaming));
-        
-        return Task.CompletedTask;
     }
         
     public async Task HandleAsync(CharacterTokenRenewedEventArgs args)
