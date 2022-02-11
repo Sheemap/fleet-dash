@@ -37,6 +37,9 @@ obj/
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 
+# Just all the jetbrains stuff
+.idea
+
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
