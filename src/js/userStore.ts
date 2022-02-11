@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { inject } from 'vue';
-import {AxiosStatic} from "axios";
 
 export type TokenSet = {
     access_token: string;
@@ -91,23 +90,26 @@ export const useUserStore = defineStore('user', {
                     reject();
                 }
 
-                const axios = inject('axios') as AxiosStatic;
-
                 const params = new URLSearchParams();
                 params.append('client_id', import.meta.env.VITE_EVE_CLIENT_ID);
                 params.append('client_secret', import.meta.env.VITE_EVE_CLIENT_SECRET);
                 params.append('grant_type', 'refresh_token');
                 params.append('redirect_uri', import.meta.env.VITE_EVE_REDIRECT_URI);
                 params.append('refresh_token', this._token_set.refresh_token);
-                axios.post('https://login.eveonline.com/v2/oauth/token', params)
+
+                const options = {
+                    method: 'POST',
+                    body: params,
+                }
+                fetch('https://login.eveonline.com/v2/oauth/token', options)
+                    .then(response => response.json())
                     .then(res => {
-                        this.setToken(res.data)
+                        this.setToken(res)
                         resolve(this._token_set);
                     })
                     .catch(err => {
                         reject(err);
                     });
-
             })
         },
         getPortraitUrl(){

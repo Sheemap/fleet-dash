@@ -4,7 +4,7 @@
 
 <script>
 import { useUserStore } from "../js/userStore";
-import { defineComponent, inject, ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 
 const component = defineComponent({
   props:{
@@ -17,7 +17,6 @@ const component = defineComponent({
   },
   setup(props, context) {
     const userStore = useUserStore();
-    const axios = inject('axios')
 
     let authState = props.queryParams.find(item => typeof(item.state) !== 'undefined');
     if (typeof(authState) === 'undefined' ||
@@ -43,14 +42,19 @@ const component = defineComponent({
     params.append('code', authCode.code);
     params.append('redirect_uri', import.meta.env.VITE_EVE_REDIRECT_URI);
 
-
-    axios.post('https://login.eveonline.com/v2/oauth/token',params).then(response =>{
-      userStore.setToken(response.data)
-      window.location.href = '/';
-    }).catch(error => {
-      console.error(error);
-      errorMessage.value = true;
-    });
+    const options = {
+      method: 'POST',
+      body: params,
+    }
+    fetch('https://login.eveonline.com/v2/oauth/token', options)
+        .then(response => response.json())
+        .then(response =>{
+          userStore.setToken(response)
+          window.location.href = '/';
+        }).catch(error => {
+          console.error(error);
+          errorMessage.value = true;
+        });
 
     return { errorMessage }
   },
