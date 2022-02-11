@@ -193,23 +193,28 @@ public class LogParserService : ILogParserService, IDisposable
         Log.Debug("Processing log entry");
         if (!_watchedCharacters.Contains(e.CharacterId)) return;
 
-        var line = Encoding.UTF8.GetString(e.Content);
+        var lines = Encoding.UTF8.GetString(e.Content)
+            .Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+            .ToList();
 
-        CallUntilTrueReturned(e.CharacterId, line,
-            FindAndRaiseIncomingDamage,
-            FindAndRaiseOutgoingDamage,
-            FindAndRaiseIncomingShield,
-            FindAndRaiseOutgoingShield,
-            FindAndRaiseIncomingArmor,
-            FindAndRaiseOutgoingArmor,
-            FindAndRaiseIncomingCapacitor,
-            FindAndRaiseOutgoingCapacitor,
-            FindAndRaiseIncomingNeut,
-            FindAndRaiseOutgoingNeut,
-            FindAndRaiseIncomingNos,
-            FindAndRaiseOutgoingNos,
-            FindAndRaiseIncomingHull,
-            FindAndRaiseOutgoingHull);
+        foreach (var line in lines)
+        {
+            CallUntilTrueReturned(e.CharacterId, line,
+                FindAndRaiseIncomingDamage,
+                FindAndRaiseOutgoingDamage,
+                FindAndRaiseIncomingShield,
+                FindAndRaiseOutgoingShield,
+                FindAndRaiseIncomingArmor,
+                FindAndRaiseOutgoingArmor,
+                FindAndRaiseIncomingCapacitor,
+                FindAndRaiseOutgoingCapacitor,
+                FindAndRaiseIncomingNeut,
+                FindAndRaiseOutgoingNeut,
+                FindAndRaiseIncomingNos,
+                FindAndRaiseOutgoingNos,
+                FindAndRaiseIncomingHull,
+                FindAndRaiseOutgoingHull);
+        }
     }
 
     /// <summary>
