@@ -96,17 +96,6 @@ func makeEventStreamTicketEndpoint(s service.SessionService, es service.EventStr
 
 func makeEventStream(es service.EventStreamService) func (w http.ResponseWriter, r *http.Request){
 	return func (w http.ResponseWriter, r *http.Request) {
-		ticket := r.URL.Query().Get("ticket")
-		activeTicket, err := es.GetActiveTicket(ticket)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if activeTicket == nil {
-			http.Error(w, "ticket not active", http.StatusBadRequest)
-			return
-		}
-
 		upgrader := websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -114,6 +103,22 @@ func makeEventStream(es service.EventStreamService) func (w http.ResponseWriter,
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
+			return
+		}
+
+		ticket := r.URL.Query().Get("ticket")
+		activeTicket, err := es.GetActiveTicket(ticket)
+		if err != nil {
+			// []byte is skipping 2 characters for some reason, so we pad it with 2 spaces
+			_ = conn.WriteControl(websocket.CloseMessage, []byte("  invalid ticket"), time.Now().Add(time.Second))
+			time.Sleep(time.Second)
+			_ = conn.Close()
+			return
+		}
+		if activeTicket == nil {
+			_ = conn.WriteControl(websocket.CloseMessage, []byte("  invalid ticket"), time.Now().Add(time.Second))
+			time.Sleep(time.Second)
+			_ = conn.Close()
 			return
 		}
 
