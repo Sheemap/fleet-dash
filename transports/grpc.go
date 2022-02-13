@@ -15,7 +15,7 @@ import (
 )
 
 type gRPCServer struct {
-	postEveLogEvent gt.Handler
+	postEveLogEventBatch gt.Handler
 }
 
 func NewGRPCServer(endpoints endpoints.GrpcEndpoints, logger log.Logger, validator utilities.JwtValidator) pb.FleetDashServiceServer {
@@ -26,8 +26,8 @@ func NewGRPCServer(endpoints endpoints.GrpcEndpoints, logger log.Logger, validat
 		gt.ServerErrorHandler(errHandler),
 	}
 	return &gRPCServer{
-		postEveLogEvent: gt.NewServer(
-			endpoints.PostEveLogEvent,
+		postEveLogEventBatch: gt.NewServer(
+			endpoints.PostEveLogEventBatch,
 			decodePostEveLogEventRequest,
 			encodeEveLogEventResponse,
 			options...,
@@ -36,21 +36,21 @@ func NewGRPCServer(endpoints endpoints.GrpcEndpoints, logger log.Logger, validat
 }
 
 
-func (s *gRPCServer) PostEveLogEvent(ctx context.Context, req *pb.EveLogEvent) (*pb.EveLogEventResponse, error) {
-	_, _, err := s.postEveLogEvent.ServeGRPC(ctx, req)
+func (s *gRPCServer) PostEveLogEventBatch(ctx context.Context, req *pb.EveLogEventBatch) (*pb.BatchedEveLogEventResponse, error) {
+	_, _, err := s.postEveLogEventBatch.ServeGRPC(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.EveLogEventResponse{}, nil
+	return &pb.BatchedEveLogEventResponse{}, nil
 }
 
 func decodePostEveLogEventRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
-	req := grpcReq.(*pb.EveLogEvent)
+	req := grpcReq.(*pb.EveLogEventBatch)
 	return req, nil
 }
 
 func encodeEveLogEventResponse(_ context.Context, response interface{}) (interface{}, error) {
-	return &pb.EveLogEventResponse{}, nil
+	return &pb.BatchedEveLogEventResponse{}, nil
 }
 
 func extractGrpcAuthentication(validator utilities.JwtValidator) func(context.Context, metadata.MD) context.Context {

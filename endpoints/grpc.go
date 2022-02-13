@@ -15,7 +15,7 @@ import (
 )
 
 type GrpcEndpoints struct {
-	PostEveLogEvent endpoint.Endpoint
+	PostEveLogEventBatch endpoint.Endpoint
 }
 
 type EmptyResponse struct {}
@@ -29,7 +29,7 @@ func MakeGrpcEndpoints(es service.EventIngestionService, ss service.SessionServi
 
 
 	return GrpcEndpoints{
-		PostEveLogEvent: postEveLogEventEndpoint,
+		PostEveLogEventBatch: postEveLogEventEndpoint,
 	}
 }
 
@@ -50,21 +50,26 @@ func makePostEveLogEventEndpoint(es service.EventIngestionService, ss service.Se
 			return nil, service.ErrNotInSession
 		}
 
-		req := request.(*pb.EveLogEvent)
+		req := request.(*pb.EveLogEventBatch)
 
-		event := service.EveLogEvent{
-			Type: req.Event,
-			CharacterID: req.CharacterId,
-			Timestamp: req.Timestamp.AsTime(),
-			Amount: req.Amount,
-			Pilot: req.Pilot,
-			Ship: req.Ship,
-			Weapon: req.Weapon,
-			Application: req.Application,
-			Corporation: req.Corporation,
-			Alliance: req.Alliance,
+		// Convert the protobuf request to a service request
+		eveLogEvents := make([]service.EveLogEvent, len(req.Events))
+		for i, event := range req.Events {
+			eveLogEvents[i] = service.EveLogEvent{
+				Type: event.Event,
+				CharacterID: event.CharacterId,
+				Timestamp: event.Timestamp.AsTime(),
+				Amount: event.Amount,
+				Pilot: event.Pilot,
+				Ship: event.Ship,
+				Weapon: event.Weapon,
+				Application: event.Application,
+				Corporation: event.Corporation,
+				Alliance: event.Alliance,
+			}
 		}
-		err = es.PersistEveLogEvent(*sessionId, event)
+
+		err = es.PersistEveLogEventBatch(*sessionId, eveLogEvents)
 		if err != nil{
 			return nil, err
 		}

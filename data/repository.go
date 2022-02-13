@@ -20,9 +20,10 @@ type Repository interface {
 	GetCharacterActiveSession(characterID string) (*Session, error)
 	GetSessionByFleet(fleetID string) (*Session, error)
 	SaveEveLogEvent(event *Event) error
+	SaveEveLogEventBatch(eventBatch *[]Event) error
 	GenerateEventStreamTicket(sessionId string) (*EventStreamTicket, error)
 	GetActiveTicket(ticket string) (*EventStreamTicket, error)
-	GetEvents(since time.Time) ([]*Event, error)
+	GetEvents(since time.Time) (*[]Event, error)
 	GetStaleSessions() (*[]string, error)
 	GetRecentEndedSessions() (*[]string, error)
 }
@@ -139,6 +140,15 @@ func (r *repository) SaveEveLogEvent(event *Event) error {
 	return err
 }
 
+func (r *repository) SaveEveLogEventBatch(eventBatch *[]Event) error {
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Create(eventBatch).Error
+		},
+	)
+	return err
+}
+
 func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTicket, error) {
 	newTicket := &EventStreamTicket{
 		BaseModel: BaseModel{
@@ -172,8 +182,8 @@ func (r *repository) GetActiveTicket(ticket string) (*EventStreamTicket, error){
 	return &stream, err
 }
 
-func (r *repository) GetEvents(since time.Time) ([]*Event, error){
-	var events []*Event
+func (r *repository) GetEvents(since time.Time) (*[]Event, error){
+	var events *[]Event
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
 			return r.db.Where("created_at > ?", since).Find(&events).Error

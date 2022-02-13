@@ -12,6 +12,7 @@ type eventIngestionService struct{
 
 type EventIngestionService interface {
 	PersistEveLogEvent(sessionID string, event EveLogEvent) error
+	PersistEveLogEventBatch(sessionID string, eventBatch []EveLogEvent) error
 }
 
 type EveLogEvent struct {
@@ -50,5 +51,28 @@ func (s *eventIngestionService) PersistEveLogEvent(sessionID string, e EveLogEve
 	}
 
 	return s.repo.SaveEveLogEvent(&event)
+}
+
+func (s *eventIngestionService) PersistEveLogEventBatch(sessionID string, eventBatch []EveLogEvent) error {
+	events := make([]data.Event, len(eventBatch))
+
+	for i, e := range eventBatch {
+		events[i] = data.Event{
+			BaseModel: data.BaseModel{ID: uuid.New().String()},
+			SessionID: sessionID,
+			Timestamp: e.Timestamp,
+			Type: e.Type,
+			CharacterID: e.CharacterID,
+			Amount: e.Amount,
+			Pilot: e.Pilot,
+			Ship: e.Ship,
+			Weapon: e.Weapon,
+			Application: e.Application,
+			Corporation: e.Corporation,
+			Alliance: e.Alliance,
+		}
+	}
+
+	return s.repo.SaveEveLogEventBatch(&events)
 }
 

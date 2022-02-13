@@ -2,11 +2,15 @@ syntax = "proto3";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "fleet-dash-core/protobuf";
-option csharp_namespace = "FleetDashCore.Protobuf";
+option csharp_namespace = "FleetDashClient.Protobuf";
 
 
 service FleetDashService {
-  rpc PostEveLogEvent(EveLogEvent) returns (EveLogEventResponse);
+  rpc PostEveLogEventBatch(EveLogEventBatch) returns (BatchedEveLogEventResponse);
+}
+
+message EveLogEventBatch {
+  repeated EveLogEvent events = 1;
 }
 
 message EveLogEvent{
@@ -22,4 +26,4 @@ message EveLogEvent{
   string alliance = 10;
 }
 
-message EveLogEventResponse{}
+message BatchedEveLogEventResponse{}

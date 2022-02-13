@@ -15,7 +15,7 @@ type eventStreamService struct{
 	repo data.Repository
 	streams []stream
 	register chan stream
-	events chan *data.Event
+	events chan *[]data.Event
 }
 
 type EventStreamService interface {
@@ -29,7 +29,7 @@ func NewEventStreamService(r data.Repository) EventStreamService {
 		repo: r,
 		streams: make([]stream, 0),
 		register: make(chan stream),
-		events: make(chan *data.Event, 100),
+		events: make(chan *[]data.Event, 100),
 	}
 
 	go svc.startDBPoll()
@@ -69,8 +69,17 @@ func (e *eventStreamService) startStreams() {
 		case event := <-e.events:
 			erroredIndexes := make([]int, 0)
 			for i, s := range e.streams {
-				if s.sessionID == event.SessionID {
-					err := s.conn.WriteJSON(event)
+				// Filter all events to the stream's session
+				sessionEvents := make([]data.Event, 0)
+				for _, e := range *event {
+					if e.SessionID == s.sessionID {
+						sessionEvents = append(sessionEvents, e)
+					}
+				}
+
+				// If any events were filtered, send them to the stream
+				if len(sessionEvents) > 0 {
+					err := s.conn.WriteJSON(sessionEvents)
 					if err != nil {
 						erroredIndexes = append(erroredIndexes, i)
 					}
@@ -103,9 +112,8 @@ func (e *eventStreamService) startDBPoll() {
 			continue
 		}
 
-		for _, event := range events {
-			e.events <- event
-		}
+		e.events <- events
+
 
 		if time.Now().Sub(lastSessionClear) > SessionClearInterval {
 			// Kick it off in a goroutine so we don't block the main loop

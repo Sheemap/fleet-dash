@@ -21,7 +21,7 @@ import (
 
 //type server struct{}
 //
-//func (s *server) PostEveLogEvent(ctx context.Context, event *protobuf.EveLogEvent) (*protobuf.EveLogEventResponse, error) {
+//func (s *server) PostEveLogEventBatch(ctx context.Context, event *protobuf.EveLogEvent) (*protobuf.EveLogEventResponse, error) {
 //	fmt.Println("Received event: ", event)
 //	return &protobuf.EveLogEventResponse{}, nil
 //}
