@@ -102,7 +102,7 @@
 
 <template>
   <div v-if="!eventStore.active" class="grid place-content-center my-5">
-    <button v-if="starting" class="bg-emerald-600 border border-emerald-800 py-2 px-3 rounded hover:bg-emerald-700 transition-all"
+    <button v-if="!starting" class="bg-emerald-600 border border-emerald-800 py-2 px-3 rounded hover:bg-emerald-700 transition-all"
             v-on:click="tryStartStream">Join Session</button>
     <button v-else class="bg-emerald-700 border border-emerald-800 py-2 px-3 rounded" disabled>
       <svg class="animate-spin inline-block w-5 h-5 mb-1 mr-2 border-b-2 rounded-full" viewBox="0 0 24 24"></svg>Join Session</button>
