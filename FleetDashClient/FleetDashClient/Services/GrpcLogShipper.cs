@@ -1,4 +1,5 @@
-﻿using EveLogParser;
+﻿using System.Collections.Concurrent;
+using EveLogParser;
 using EveLogParser.Models.Events;
 using EventAggregator.Blazor;
 using FleetDashClient.Data;
@@ -8,7 +9,6 @@ using FleetDashClient.Models.Exceptions;
 using FleetDashClient.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace FleetDashClient.Services;
@@ -16,24 +16,24 @@ namespace FleetDashClient.Services;
 public class GrpcLogShipper : IDisposable
 {
     private readonly ILogParserService _logParserService;
-    private readonly DataContext _dbContext;
     private readonly FleetDashService.FleetDashServiceClient _client;
     private readonly IEventAggregator _eventAggregator;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     
     private (string?, DateTimeOffset) _fleetData;
-    private DateTimeOffset _lastBackOff = DateTimeOffset.MinValue;
-    private SemaphoreSlim _semaphore = new SemaphoreSlim(1);
-    
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _lastBackOff = new();
+    private readonly BlockingCollection<EveLogEvent> _eventQueue = new();
+
     public GrpcLogShipper(
         ILogParserService logParserService,
-        DataContext dataContext,
         FleetDashService.FleetDashServiceClient client,
-        IEventAggregator aggregator)
+        IEventAggregator aggregator,
+        IServiceScopeFactory scopeFactory)
     {
         _logParserService = logParserService;
-        _dbContext = dataContext;
         _client = client;
         _eventAggregator = aggregator;
+        _serviceScopeFactory = scopeFactory;
 
         _logParserService.OnIncomingDamage += EveLogHandler;
         _logParserService.OnOutgoingDamage += EveLogHandler;
@@ -49,44 +49,42 @@ public class GrpcLogShipper : IDisposable
         _logParserService.OnOutgoingNos += EveLogHandler;
         _logParserService.OnIncomingNeut += EveLogHandler;
         _logParserService.OnOutgoingNeut += EveLogHandler;
+
+        Task.Run(QueueProcessor);
     }
 
-    private async Task<Token?> GetFreshToken(string characterId)
+    private async Task<Token?> GetFreshTokenAsync(DataContext dbContext, string characterId)
     {
-        await _semaphore.WaitAsync();
-        
-        var token = _dbContext.Tokens
-            .OrderByDescending(x => x.ExpiresAt)
-            .FirstOrDefault(x => x.CharacterId == characterId);
+        var token = dbContext.Tokens
+                .OrderByDescending(x => x.ExpiresAt)
+                .FirstOrDefault(x => x.CharacterId == characterId);
         if (token == null)
         {
             return null;
         }
-     
-        if (token.ExpiresAt > DateTimeOffset.Now.AddMinutes(1)) return token;
+
+        if (token.ExpiresAt > DateTimeOffset.Now.AddMinutes(1))
+        {
+            return token;
+        }
 
         // refresh token
         var newToken = await TokenService.RefreshToken(token);
         newToken.CharacterId = characterId;
-        _dbContext.Tokens.Add(newToken);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Tokens.Add(newToken);
+        await dbContext.SaveChangesAsync();
 
-        _semaphore.Release();
-        
         return newToken;
     }
 
     private void EveLogHandler<T>(object? sender, T args) where T : EveLogEventArgs
     {
-        if (_lastBackOff > DateTimeOffset.Now.AddSeconds(-30))
-        {
-            return;
-        }
-
         Task.Run(async () =>
         {
-            var character = await _dbContext.Characters
-                .FirstOrDefaultAsync(x => x.Id == args.CharacterId);
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+            
+            var character = await dbContext.Characters.FindAsync(args.CharacterId);
             if (character == null)
             {
                 Log.Error("Character not found in DB! ID: {CharacterId}", args.CharacterId);
@@ -96,7 +94,7 @@ public class GrpcLogShipper : IDisposable
             Token? freshToken;
             try
             {
-                freshToken = await GetFreshToken(character.Id);
+                freshToken = await GetFreshTokenAsync(dbContext, character.Id);
                 if (freshToken == null)
                 {
                     Log.Warning("Character {CharacterId} has no token", character.Id);
@@ -115,19 +113,18 @@ public class GrpcLogShipper : IDisposable
             // Eve API caches the route for 60 seconds
             if (_fleetData.Item2 < DateTimeOffset.Now.AddSeconds(-60))
             {
-                var fleetId = await EveClient.GetCharacterFleetIdAsync(freshToken.CharacterId, freshToken.AccessToken);
+                var fleetId =
+                    await EveClient.GetCharacterFleetIdAsync(freshToken.CharacterId, freshToken.AccessToken);
                 _fleetData = (fleetId, DateTimeOffset.Now);
             }
+
             if (_fleetData.Item1 == null)
             {
                 Log.Debug("Not in a fleet, skipping log ship");
                 return;
             }
 
-            var meta = new Metadata
-            {
-                { "Authorization", $"Bearer {freshToken.AccessToken}" }
-            };
+            
 
             var eventType = args.GetType().ToString().Split('.').Last();
             var eveEvent = new EveLogEvent
@@ -143,26 +140,88 @@ public class GrpcLogShipper : IDisposable
                 Corporation = args.Corporation,
                 Alliance = args.Alliance,
             };
-            try
-            {
-                await _client.PostEveLogEventAsync(eveEvent, meta);
-                await _eventAggregator.PublishAsync(new LogStreamedEventArgs(args.CharacterId));
-            }
-            catch (RpcException ex)
-            {
-                if (ex.StatusCode == StatusCode.FailedPrecondition)
-                {
-                    Log.Debug("Server is not accepting logs, backing off for 30 seconds");
-                    _lastBackOff = DateTimeOffset.Now;
-                }
-                else
-                {
-                    Log.Warning(ex, "Failed to send log event to server. Event: {@LogEvent}", eveEvent);
-                }
-            }
+            _eventQueue.Add(eveEvent); 
+            await _eventAggregator.PublishAsync(new LogStreamedEventArgs(args.CharacterId));
         });
     }
 
+    private async Task QueueProcessor()
+    {
+
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+        while (!_eventQueue.IsCompleted)
+        {
+            try
+            {
+                Thread.Sleep(500);
+                var batch = new List<EveLogEvent>();
+                while (_eventQueue.TryTake(out var eveEvent) && batch.Count < 100)
+                {
+                    batch.Add(eveEvent);
+                }
+
+                if (batch.Count == 0)
+                {
+                    continue;
+                }
+
+                var grouped = batch
+                    .GroupBy(x => x.CharacterId)
+                    .ToList();
+
+                foreach (var batched in grouped)
+                {
+                    if (_lastBackOff.TryGetValue(batched.Key, out var lastBackoff) &&
+                        lastBackoff > DateTimeOffset.Now.AddSeconds(-30))
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        var freshToken = await GetFreshTokenAsync(dbContext, batched.Key);
+                        if (freshToken == null)
+                        {
+                            Log.Warning("Character {CharacterId} has no token", batched.Key);
+                            await _eventAggregator.PublishAsync(new InvalidCharacterTokenEventArgs(batched.Key));
+                            return;
+                        }
+                        
+                        var meta = new Metadata
+                        {
+                            { "Authorization", $"Bearer {freshToken.AccessToken}" }
+                        };
+
+                        var batchedRequest = new EveLogEventBatch
+                        {
+                            Events = { batched }
+                        };
+                        await _client.PostEveLogEventBatchAsync(batchedRequest, meta);
+                    }
+                    catch (RpcException ex)
+                    {
+                        if (ex.StatusCode == StatusCode.FailedPrecondition)
+                        {
+                            Log.Debug("Server is not accepting logs, backing off for 30 seconds");
+                            _lastBackOff.AddOrUpdate(batched.Key, DateTimeOffset.Now, (_, _) => DateTimeOffset.Now);
+                        }
+                        else
+                        {
+                            Log.Warning(ex, "Failed to send log event batch to server. Events missed: {BatchCount}",
+                                batched.Count());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to process log event queue");
+            }
+        }
+    }
+    
     public void Dispose()
     {
         _logParserService.OnIncomingDamage -= EveLogHandler;
@@ -179,5 +238,7 @@ public class GrpcLogShipper : IDisposable
         _logParserService.OnOutgoingNos -= EveLogHandler;
         _logParserService.OnIncomingNeut -= EveLogHandler;
         _logParserService.OnOutgoingNeut -= EveLogHandler;
+        
+        _eventQueue.CompleteAdding();
     }
 }
