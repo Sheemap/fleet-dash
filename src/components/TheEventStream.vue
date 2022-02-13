@@ -39,7 +39,9 @@
         ws.addEventListener('message', function incoming(data) {
           let jsonData = JSON.parse(data.data)
           console.log(data.data);
-          emitter.emit(jsonData.Type, jsonData);
+          for (let event of jsonData){
+            emitter.emit(event.Type, event);
+          }
         });
 
         ws.addEventListener('close', function close(event) {
