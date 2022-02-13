@@ -73,7 +73,7 @@ export const useUserStore = defineStore('user', {
                     reject();
                 }
                 // If tokenset is not expired or close, return it
-                else if (this._token_set.expires_at > (Date.now() / 1000) - 60) {
+                else if (this._token_set.expires_at > (Date.now() / 1000) + 60) {
                     resolve(this._token_set);
                 }
                 // If tokenset is expired, or close, refresh it
