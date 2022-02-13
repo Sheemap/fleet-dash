@@ -91,8 +91,10 @@ func (e *eventStreamService) startStreams() {
 	}
 }
 
+var SessionClearInterval = time.Minute * 5
 func (e *eventStreamService) startDBPoll() {
 	lastPoll := time.Now()
+	lastSessionClear := time.Now()
 	for {
 		tmpLastPoll := lastPoll
 		lastPoll = time.Now()
@@ -103,6 +105,42 @@ func (e *eventStreamService) startDBPoll() {
 
 		for _, event := range events {
 			e.events <- event
+		}
+
+		if time.Now().Sub(lastSessionClear) > SessionClearInterval {
+			// Kick it off in a goroutine so we don't block the main loop
+			go func() {
+				lastSessionClear = time.Now()
+
+				// End stale sessions
+				sessions, err := e.repo.GetStaleSessions()
+				if err != nil {
+					return
+				}
+				for _, sessionID := range *sessions {
+					err = e.repo.EndSession(sessionID)
+					if err != nil {
+						continue
+					}
+				}
+
+				// Ensure ended sessions are not in the stream
+				// This has to be separate from above loop so a distributed architecture can be used
+				endedSessions, err := e.repo.GetRecentEndedSessions()
+				for _, sessionID := range *endedSessions {
+					for _, stream := range e.streams {
+						if stream.sessionID == sessionID {
+							err = stream.conn.WriteControl(websocket.CloseMessage, []byte("  session ended"), time.Now().Add(time.Second))
+							if err != nil {
+								continue
+							}
+
+							time.Sleep(time.Second)
+							_ = stream.conn.Close()
+						}
+					}
+				}
+			}()
 		}
 
 		time.Sleep(time.Second)

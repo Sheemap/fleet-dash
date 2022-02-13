@@ -23,6 +23,8 @@ type Repository interface {
 	GenerateEventStreamTicket(sessionId string) (*EventStreamTicket, error)
 	GetActiveTicket(ticket string) (*EventStreamTicket, error)
 	GetEvents(since time.Time) ([]*Event, error)
+	GetStaleSessions() (*[]string, error)
+	GetRecentEndedSessions() (*[]string, error)
 }
 
 func NewRepository() Repository {
@@ -62,6 +64,34 @@ func (r *repository) EndSession(sessionID string) error {
 		},
 	)
 	return err
+}
+
+func (r *repository) GetStaleSessions() (*[]string, error) {
+	var sessions []string
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Model(&Session{}).Joins("LEFT JOIN events ON sessions.id = events.session_id").Where("sessions.ended_at IS NULL").Where("sessions.created_at < ?", time.Now().Add(-time.Hour * 2)).Group("sessions.id").Having("max(events.created_at) < ? OR count(events.created_at) = 0", time.Now().Add(-time.Hour*2)).Select("sessions.id").Scan(&sessions).Error
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sessions, err
+}
+
+func (r *repository) GetRecentEndedSessions() (*[]string, error) {
+	var sessions []string
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Model(&Session{}).Where("ended_at IS NOT NULL").Where("ended_at > ?", time.Now().Add(-time.Hour * 48)).Select("id").Scan(&sessions).Error
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sessions, err
 }
 
 func (r *repository) GetSession(sessionId string) (*Session, error) {
