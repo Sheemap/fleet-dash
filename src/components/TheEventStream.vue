@@ -7,6 +7,7 @@
   const userStore = useUserStore();
   const eventStore = useEventStore();
 
+  let authenticated = ref(false);
   let starting = ref(false);
 
   function tryStartStream(startSession = true){
@@ -96,14 +97,23 @@
             starting.value = false;
           }
         });
-    });
+    })
+    .catch(err => starting.value = false);
   }
 
-  tryStartStream(false);
+  // Try to start the stream if we are authenticated
+  userStore.getActiveToken().then(_ =>{
+      authenticated.value = true;
+      tryStartStream(false);
+  })
+  .catch(_ =>{
+    // No token stored
+    authenticated.value = false;
+  })
 </script>
 
 <template>
-  <div v-if="!eventStore.active" class="grid place-content-center my-5">
+  <div v-if="!eventStore.active && authenticated" class="grid place-content-center my-5">
     <button v-if="!starting" class="bg-emerald-600 border border-emerald-800 py-2 px-3 rounded hover:bg-emerald-700 transition-all"
             v-on:click="tryStartStream">Join Session</button>
     <button v-else class="bg-emerald-700 border border-emerald-800 py-2 px-3 rounded" disabled>
