@@ -29,7 +29,6 @@ test();
     <TheNavBar />
     <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />
 
-
     <div v-if="eventStore.active">
       <TotalDamageOut />
       <TotalDamageIn />
