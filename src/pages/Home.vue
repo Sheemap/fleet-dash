@@ -7,6 +7,8 @@ import TotalDamageOut from "../components/TotalDamageOut.vue";
 import TotalDamageIn from "../components/TotalDamageIn.vue";
 import TotalShieldIn from "../components/TotalShieldIn.vue";
 import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue"
+import PlayerShipCard from "../components/PlayerShipCard.vue"
+import PlayerShipCardProgressCountdown from "../components/PlayerShipCardProgressCountdown.vue"
 
 import { useEventStore } from "../js/eventStore";
 import {ref, inject} from "vue";
@@ -20,7 +22,7 @@ function test(){
   setTimeout(test, 2000)
 }
 
-test();
+// test();
 </script>
 
 <template>
@@ -28,6 +30,8 @@ test();
 
     <TheNavBar />
     <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />
+    <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
+
 
     <div v-if="eventStore.active">
       <TotalDamageOut />
