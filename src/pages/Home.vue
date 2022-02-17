@@ -7,11 +7,13 @@ import TotalDamageOut from "../components/TotalDamageOut.vue";
 import TotalDamageIn from "../components/TotalDamageIn.vue";
 import TotalShieldIn from "../components/TotalShieldIn.vue";
 import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue"
+import AvgPerSecondOverTimeCounter from "../components/AvgPerSecondOverTimeCounter.vue"
 import PlayerShipCard from "../components/PlayerShipCard.vue"
 import PlayerShipCardProgressCountdown from "../components/PlayerShipCardProgressCountdown.vue"
 
 import { useEventStore } from "../js/eventStore";
 import {ref, inject} from "vue";
+import IncomingDPS from "../components/IncomingDPS.vue";
 
 const eventStore = useEventStore();
 
@@ -29,11 +31,12 @@ function test(){
   <div class="bg-zinc-900 h-screen text-slate-100">
 
     <TheNavBar />
-    <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />
+<!--    <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />-->
     <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
 
 
     <div v-if="eventStore.active">
+      <IncomingDPS />
       <TotalDamageOut />
       <TotalDamageIn />
       <TotalShieldIn />
