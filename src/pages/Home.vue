@@ -10,6 +10,7 @@ import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue
 import AvgPerSecondOverTimeCounter from "../components/AvgPerSecondOverTimeCounter.vue"
 import PlayerShipCard from "../components/PlayerShipCard.vue"
 import PlayerShipCardProgressCountdown from "../components/PlayerShipCardProgressCountdown.vue"
+import RecentIncomingJams from "../components/RecentIncomingJams.vue"
 
 import { useEventStore } from "../js/eventStore";
 import {ref, inject} from "vue";
@@ -31,17 +32,23 @@ function test(){
   <div class="bg-zinc-900 h-screen text-slate-100">
 
     <TheNavBar />
-<!--    <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />-->
-    <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
+    <div class="grid grid-cols-4 grid-rows-4 justify-evenly">
+      <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />
+      <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
+      <div class="row-span-3">
+        <RecentIncomingJams />
+
+      </div>
 
 
-    <div v-if="eventStore.active">
-      <IncomingDPS />
-      <TotalDamageOut />
-      <TotalDamageIn />
-      <TotalShieldIn />
+      <div v-if="eventStore.active">
+        <IncomingDPS />
+        <TotalDamageOut />
+        <TotalDamageIn />
+        <TotalShieldIn />
+      </div>
+
+      <TheEventStream />
     </div>
-
-    <TheEventStream />
   </div>
 </template>
