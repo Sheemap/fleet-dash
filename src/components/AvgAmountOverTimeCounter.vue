@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Counter from "../components/Counter.vue"
 
-import {defineProps, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 
 const props = defineProps<{
     eventType: string;

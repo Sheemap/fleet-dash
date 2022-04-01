@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PlayerShipCard from './PlayerShipCard.vue'
 
-const props = defineProps<{
+defineProps<{
     shipId: number;
     playerName: string;
     value: string;

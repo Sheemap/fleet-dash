@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Counter from "../components/Counter.vue"
 
-import {computed, defineProps, inject, ref} from 'vue';
+import {computed, inject, ref} from 'vue';
 
 const props = defineProps<{
     title: string;

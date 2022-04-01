@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import {defineProps, computed} from 'vue';
-import numeral from 'numeral';
-import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue'
+import {computed} from 'vue';
+import * as numeral from 'numeral';
 
 const props = defineProps<{
     title: string;

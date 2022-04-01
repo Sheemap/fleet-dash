@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { inject } from 'vue';
 
 export type TokenSet = {
     access_token: string;
@@ -114,10 +113,10 @@ export const useUserStore = defineStore('user', {
         },
         getPortraitUrl(){
             if(this._portrait_url !== ''){
-                return new Promise((resolve, reject) => resolve(this._portrait_url));
+                return new Promise((resolve, _) => resolve(this._portrait_url));
             }
 
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve, _) => {
                 this.getActiveToken().then(token => {
                     let charID = this.character_id;
                     // Get the portrait url
