@@ -7,14 +7,12 @@ import TotalDamageOut from "../components/TotalDamageOut.vue";
 import TotalDamageIn from "../components/TotalDamageIn.vue";
 import TotalShieldIn from "../components/TotalShieldIn.vue";
 import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue"
-import AvgPerSecondOverTimeCounter from "../components/AvgPerSecondOverTimeCounter.vue"
-import PlayerShipCard from "../components/PlayerShipCard.vue"
-import PlayerShipCardProgressCountdown from "../components/PlayerShipCardProgressCountdown.vue"
 import RecentIncomingJams from "../components/RecentIncomingJams.vue"
 
 import { useEventStore } from "../js/eventStore";
-import {ref, inject} from "vue";
+import {inject} from "vue";
 import IncomingDPS from "../components/IncomingDPS.vue";
+import FleetOverview from "../components/FleetOverview.vue";
 
 const eventStore = useEventStore();
 
@@ -29,17 +27,25 @@ function test(){
 </script>
 
 <template>
-  <div class="bg-zinc-900 h-screen text-slate-100">
-
+  <div class="bg-zinc-900 text-slate-100 h-full pb-96 md:pb-0 md:h-screen">
     <TheNavBar />
-    <div class="grid grid-cols-4 grid-rows-4 justify-evenly">
-      <AvgAmountOverTimeCounter event-type="Test-Event" period-seconds=5 />
+
+    <div class="p-3">
+
+    <div class="grid  gap-3 grid-cols-1 grid-rows-auto md:grid-cols-4 md:grid-rows-3">
+      <AvgAmountOverTimeCounter event-type="IncomingDamageEvent" period-seconds=5 />
+      <AvgAmountOverTimeCounter event-type="OutgoingDamageEvent" period-seconds=5 />
       <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
       <div class="row-span-3">
         <RecentIncomingJams />
-
+      </div>
+      <div class="row-span-3">
+        <RecentIncomingJams />
       </div>
 
+      <div class="row-span-2">
+        <FleetOverview/>
+      </div>
 
       <div v-if="eventStore.active">
         <IncomingDPS />
@@ -50,5 +56,6 @@ function test(){
 
       <TheEventStream />
     </div>
+  </div>
   </div>
 </template>

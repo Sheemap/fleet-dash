@@ -55,7 +55,7 @@ setTimeout(() => {
 </script>
 
 <template>
-  <div class="border rounded drop-shadow m-3 p-2 text-center bg-zinc-800 h-full">
+  <div class="border rounded drop-shadow text-center bg-zinc-800 h-full">
     <div class="text-2xl my-3">Incoming Jams</div>
 
     <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
