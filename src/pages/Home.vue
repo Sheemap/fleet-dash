@@ -13,6 +13,7 @@ import { useEventStore } from "../js/eventStore";
 import {inject} from "vue";
 import IncomingDPS from "../components/IncomingDPS.vue";
 import FleetOverview from "../components/FleetOverview.vue";
+import TheFleetUpdater from "../components/TheFleetUpdater.vue";
 
 const eventStore = useEventStore();
 
@@ -55,6 +56,7 @@ function test(){
       </div>
 
       <TheEventStream />
+      <TheFleetUpdater />
     </div>
   </div>
   </div>
