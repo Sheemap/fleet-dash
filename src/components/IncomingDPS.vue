@@ -3,5 +3,5 @@
 </script>
 
 <template>
-  <AvgPerSecondOverTimeCounter title="Incoming DPS" event-type="IncomingDamageEvent" period-seconds="15" />
+  <AvgPerSecondOverTimeCounter title="Incoming DPS" event-type="IncomingDamageEvent" period-seconds=15 />
 </template>

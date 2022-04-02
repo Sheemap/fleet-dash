@@ -1,6 +1,4 @@
 <script setup>
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
 import TheNavBar from "../components/TheNavBar.vue";
 import TheEventStream from "../components/TheEventStream.vue";
 import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue"
@@ -14,13 +12,6 @@ import TheFleetUpdater from "../components/TheFleetUpdater.vue";
 const eventStore = useEventStore();
 
 const emitter = inject("emitter");
-
-function test(){
-  emitter.emit('Test-Event', {Amount: Math.floor(Math.random() * 3000)})
-  setTimeout(test, 2000)
-}
-
-// test();
 </script>
 
 <template>
@@ -31,9 +22,8 @@ function test(){
       <div class="p-3">
 
         <div class="grid  gap-3 grid-cols-1 grid-rows-auto md:grid-cols-4 md:grid-rows-3">
-          <AvgAmountOverTimeCounter event-type="IncomingDamageEvent" period-seconds=5 />
-          <AvgAmountOverTimeCounter event-type="OutgoingDamageEvent" period-seconds=5 />
-          <!-- <PlayerShipCardProgressCountdown player-name="Hello" ship-id="587" seconds="10" /> -->
+          <AvgAmountOverTimeCounter event-type="IncomingDamageEvent" :period-seconds=5 />
+          <AvgAmountOverTimeCounter event-type="OutgoingDamageEvent" :period-seconds=5 />
           <div class="row-span-3">
             <RecentIncomingJams />
           </div>

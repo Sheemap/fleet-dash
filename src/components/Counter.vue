@@ -6,7 +6,6 @@ const numeral = numeral_;
 const props = defineProps<{
     title: string;
     count: number;
-    countColor: string;
 }>();
 
 let readableCount = computed(() => numeral(props.count).format('0[.]00a'));
@@ -16,6 +15,6 @@ let readableCount = computed(() => numeral(props.count).format('0[.]00a'));
 <template>
     <div class="border rounded drop-shadow text-center bg-zinc-800">
         <div class="text-2xl mt-4">{{title}}</div>
-        <div class="text-6xl font-extrabold my-10" :class="[countColor]">{{readableCount}}</div>
+        <div class="text-6xl font-extrabold my-10">{{readableCount}}</div>
     </div>
 </template>
