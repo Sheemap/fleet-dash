@@ -49,6 +49,8 @@ public class GrpcLogShipper : IDisposable
         _logParserService.OnOutgoingNos += EveLogHandler;
         _logParserService.OnIncomingNeut += EveLogHandler;
         _logParserService.OnOutgoingNeut += EveLogHandler;
+        _logParserService.OnIncomingJam += EveLogHandler;
+        _logParserService.OnOutgoingJam += EveLogHandler;
 
         Task.Run(QueueProcessor);
     }
@@ -238,6 +240,8 @@ public class GrpcLogShipper : IDisposable
         _logParserService.OnOutgoingNos -= EveLogHandler;
         _logParserService.OnIncomingNeut -= EveLogHandler;
         _logParserService.OnOutgoingNeut -= EveLogHandler;
+        _logParserService.OnIncomingJam -= EveLogHandler;
+        _logParserService.OnOutgoingJam -= EveLogHandler;
         
         _eventQueue.CompleteAdding();
     }

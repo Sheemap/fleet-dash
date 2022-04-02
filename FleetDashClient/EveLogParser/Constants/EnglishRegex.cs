@@ -26,4 +26,7 @@ public static class EnglishRegex
     public const string OutgoingNeut = @"\(combat\) <.*?ff7fffff><b>(?<Amount>[0-9]+).*> energy neutralized <";
     public const string IncomingNos = @"\(combat\) <.*?><b>\-(?<Amount>[0-9]+).*> energy drained to <";
     public const string OutgoingNos = @"\(combat\) <.*?><b>\+(?<Amount>[0-9]+).*> energy drained from <";
+
+    public const string IncomingJam = @"\(combat\) <.*?>You're<.*?>jammed<.*?>by<.*?<u>(?<Weapon>[A-z|0-9| |-]+)+<.*?>";
+    public const string OutgoingJam = @"\(combat\) <.*?> <.*?>(?<TargetName>[A-z|0-9| ]+)<.*?> - jammed<.*?> - (?<Weapon>[A-z|0-9| |-]+)+<.*?>";
 }

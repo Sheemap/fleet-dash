@@ -18,6 +18,8 @@ public interface ILogParserService
     event EventHandler<OutgoingNeutEvent> OnOutgoingNeut;
     event EventHandler<IncomingNosEvent> OnIncomingNos;
     event EventHandler<OutgoingNosEvent> OnOutgoingNos;
+    event EventHandler<IncomingJamEvent>? OnIncomingJam;
+    event EventHandler<OutgoingJamEvent>? OnOutgoingJam;
     void StartWatchingCharacter(string characterId);
     void StopWatchingCharacter(string characterId);
     Task Start();

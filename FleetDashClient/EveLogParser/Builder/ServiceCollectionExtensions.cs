@@ -28,13 +28,13 @@ public static class ServiceCollectionExtensions
     /// <param name="config"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public static IServiceCollection AddEveLogParser(this IServiceCollection services, IConfiguration config)
-    {
-        if (config == null) throw new ArgumentNullException(nameof(config));
-        services.Configure<EveLogParserOptions>(config);
-        RegisterDI(services);
-        return services;
-    }
+    // public static IServiceCollection AddEveLogParser(this IServiceCollection services, IConfiguration config)
+    // {
+    //     if (config == null) throw new ArgumentNullException(nameof(config));
+    //     services.Configure<EveLogParserOptions>(config);
+    //     RegisterDI(services);
+    //     return services;
+    // }
 
     private static void RegisterDI(IServiceCollection services)
     {

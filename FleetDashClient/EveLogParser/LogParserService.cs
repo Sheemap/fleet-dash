@@ -44,6 +44,8 @@ public class LogParserService : ILogParserService, IDisposable
     public event EventHandler<OutgoingNeutEvent>? OnOutgoingNeut;
     public event EventHandler<IncomingNosEvent>? OnIncomingNos;
     public event EventHandler<OutgoingNosEvent>? OnOutgoingNos;
+    public event EventHandler<IncomingJamEvent>? OnIncomingJam;
+    public event EventHandler<OutgoingJamEvent>? OnOutgoingJam;
 
     private void UpdateRegex(EveLogParserOptions options)
     {
@@ -213,7 +215,9 @@ public class LogParserService : ILogParserService, IDisposable
                 FindAndRaiseIncomingNos,
                 FindAndRaiseOutgoingNos,
                 FindAndRaiseIncomingHull,
-                FindAndRaiseOutgoingHull);
+                FindAndRaiseOutgoingHull,
+                FindAndRaiseIncomingJam,
+                FindAndRaiseOutgoingJam);
         }
     }
 
@@ -394,6 +398,24 @@ public class LogParserService : ILogParserService, IDisposable
 
         return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
             argsBuilder, characterId, logLine, false);
+    }
+    
+    private bool FindAndRaiseIncomingJam(string characterId, string logLine)
+    {
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new IncomingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+
+        return FindAndRaiseEvent(OnIncomingJam, EnglishRegex.IncomingJam,
+            argsBuilder, characterId, logLine, true);
+    }
+    
+    private bool FindAndRaiseOutgoingJam(string characterId, string logLine)
+    {
+        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
+            new OutgoingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+
+        return FindAndRaiseEvent(OnOutgoingJam, EnglishRegex.OutgoingJam,
+            argsBuilder, characterId, logLine, true);
     }
 
     public void Dispose()
