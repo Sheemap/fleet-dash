@@ -1,7 +1,6 @@
 package data
 
 import (
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -45,13 +44,11 @@ type EventStreamTicket struct {
 }
 
 type StaticItemInfo struct {
-	gorm.Model
-
+	ID   uint `gorm:"primarykey"`
 	Name string
 }
 
 type StaticSolarSystemInfo struct {
-	gorm.Model
-
+	ID   uint `gorm:"primarykey"`
 	Name string
 }
