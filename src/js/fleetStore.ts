@@ -6,6 +6,7 @@ export type FleetState = {
     character_fleet: CharacterFleet;
     _members_expires_at: number;
     members: FleetMember[];
+    able_to_fetch_members: boolean;
 }
 
 export type CharacterFleet = {
@@ -23,7 +24,7 @@ export type FleetMember = {
     ship_type_id: number;
     solar_system_id: number;
     squad_id: number;
-    station_id: number;
+    station_id: number | null;
     takes_fleet_warp: boolean;
     wing_id: number;
 }
@@ -40,11 +41,12 @@ export const useFleetStore = defineStore('fleet', {
             },
             _members_expires_at: 0,
             members: [],
+            able_to_fetch_members: false,
         } as FleetState;
     },
     actions: {
         fetchFleet(charID: number, token: TokenSet) : Promise<CharacterFleet> {
-            if (this._character_fleet_expires_at > Date.now()) {
+            if (this._character_fleet_expires_at > Date.now() + 3000) {
                 return Promise.resolve(this.character_fleet);
             }
 
@@ -74,7 +76,7 @@ export const useFleetStore = defineStore('fleet', {
             });
         },
         fetchMembers(token: TokenSet) : Promise<FleetMember[]> {
-            if (this._members_expires_at > Date.now()) {
+            if (this._members_expires_at > Date.now() + 3000) {
                 return Promise.resolve(this.members);
             }
 
@@ -105,6 +107,66 @@ export const useFleetStore = defineStore('fleet', {
                 .catch(err => {
                     reject(err);
                 });
+            });
+        },
+        fetchItemName(itemId: number, token: TokenSet) : Promise<string> {
+            const cacheKey = 'item_'+ itemId.toString();
+            let cachedName = localStorage.getItem(cacheKey);
+
+            if  (cachedName) {
+                return Promise.resolve(cachedName);
+            }
+
+            return new Promise((resolve, reject) => {
+                fetch(`${import.meta.env.VITE_FLEETDASH_CORE_SCHEME}://${import.meta.env.VITE_FLEETDASH_CORE_URL}/api/static/item?id=${itemId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token.access_token}`
+                    }
+                })
+                .then(res => {
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.Name && typeof data.Name === 'string') {
+                        localStorage.setItem(cacheKey, data.Name);
+                        resolve(data.Name);
+                    } else {
+                        reject("Item name is empty.");
+                    }
+                })
+                .catch(err => {
+                    reject(err);
+                });
+            });
+        },
+        fetchSystemName(systemId: number, token: TokenSet) : Promise<string> {
+            const cacheKey = 'system_'+ systemId.toString();
+            let cachedName = localStorage.getItem(cacheKey);
+
+            if  (cachedName) {
+                return Promise.resolve(cachedName);
+            }
+
+            return new Promise((resolve, reject) => {
+                fetch(`${import.meta.env.VITE_FLEETDASH_CORE_SCHEME}://${import.meta.env.VITE_FLEETDASH_CORE_URL}/api/static/system?id=${systemId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token.access_token}`
+                    }
+                })
+                    .then(res => {
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.Name && typeof data.Name === 'string') {
+                            localStorage.setItem(cacheKey, data.Name);
+                            resolve(data.Name);
+                        } else {
+                            reject("System name is empty.");
+                        }
+                    })
+                    .catch(err => {
+                        reject(err);
+                    });
             });
         },
     },

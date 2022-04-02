@@ -10,6 +10,7 @@ const eventStore = useEventStore();
 
 let running = ref(false);
 let errored = ref(false);
+let nextTryFetchMember = ref(0);
 
 async function updateFleet(failCount: number) {
   if (!eventStore.active) {
@@ -22,7 +23,18 @@ async function updateFleet(failCount: number) {
   try {
     let token = await userStore.getActiveToken();
     await fleetStore.fetchFleet(userStore.character_id, token);
-    await fleetStore.fetchMembers(token);
+
+    // Can only fetch members if we are a fleet commander
+    if(nextTryFetchMember.value < Date.now()) {
+      try{
+        await fleetStore.fetchMembers(token);
+        fleetStore.able_to_fetch_members = true;
+      } catch(e) {
+        // If we fail to fetch members, we will try again in 1 minute
+        nextTryFetchMember.value = Date.now() + 60000;
+        fleetStore.able_to_fetch_members = false;
+      }
+    }
 
     // 5 seconds is the lowest cache time for these APIs
     setTimeout(updateFleet, 1000 * 5, 0);
