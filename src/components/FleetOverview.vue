@@ -45,7 +45,6 @@ function getSystemName(systemId: number) : Ref<string> {
 
   userStore.getActiveToken().then(token =>{
     fleetStore.fetchSystemName(systemId, token).then(name => {
-      console.log(name)
       systemName.value = name;
     });
   })
