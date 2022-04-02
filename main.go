@@ -37,9 +37,10 @@ func main() {
 	eventIngestionService := service.NewEventIngestionService(repository)
 	eventStreamService := service.NewEventStreamService(repository)
 	sessionService := service.NewSessionService(repository, logger)
+	staticDataService := service.NewStaticDataService(repository, logger)
 
 	eventEndpoints := endpoints.MakeGrpcEndpoints(eventIngestionService, sessionService, logger)
-	httpEndpoints := endpoints.MakeHttpEndpoints(logger, sessionService, eventStreamService)
+	httpEndpoints := endpoints.MakeHttpEndpoints(logger, sessionService, eventStreamService, staticDataService)
 
 	jwtValidator := utilities.NewValidator()
 	grpcServer := transports.NewGRPCServer(eventEndpoints, logger, jwtValidator)

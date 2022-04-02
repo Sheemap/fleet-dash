@@ -26,6 +26,8 @@ type Repository interface {
 	GetEvents(since time.Time) (*[]Event, error)
 	GetStaleSessions() (*[]string, error)
 	GetRecentEndedSessions() (*[]string, error)
+	GetStaticItemInfo(id uint64) (*StaticItemInfo, error)
+	GetStaticSolarSystemInfo(id uint64) (*StaticSolarSystemInfo, error)
 }
 
 func NewRepository() Repository {
@@ -35,13 +37,13 @@ func NewRepository() Repository {
 	}
 }
 
-func initGorm() *gorm.DB{
+func initGorm() *gorm.DB {
 	db, err := gorm.Open(postgres.Open("postgresql://jamis:JFc8yI2euSGTRtNY2Vracw@free-tier4.aws-us-west-2.cockroachlabs.cloud:26257/fleet-dash-2252.defaultdb"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&Session{}, &Event{}, &EventStreamTicket{})
+	err = db.AutoMigrate(&Session{}, &Event{}, &EventStreamTicket{}, &StaticItemInfo{}, &StaticSolarSystemInfo{})
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +73,7 @@ func (r *repository) GetStaleSessions() (*[]string, error) {
 	var sessions []string
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
-			return r.db.Model(&Session{}).Joins("LEFT JOIN events ON sessions.id = events.session_id").Where("sessions.ended_at IS NULL").Where("sessions.created_at < ?", time.Now().Add(-time.Hour * 2)).Group("sessions.id").Having("max(events.created_at) < ? OR count(events.created_at) = 0", time.Now().Add(-time.Hour*2)).Select("sessions.id").Scan(&sessions).Error
+			return r.db.Model(&Session{}).Joins("LEFT JOIN events ON sessions.id = events.session_id").Where("sessions.ended_at IS NULL").Where("sessions.created_at < ?", time.Now().Add(-time.Hour*2)).Group("sessions.id").Having("max(events.created_at) < ? OR count(events.created_at) = 0", time.Now().Add(-time.Hour*2)).Select("sessions.id").Scan(&sessions).Error
 		},
 	)
 	if err != nil {
@@ -85,7 +87,7 @@ func (r *repository) GetRecentEndedSessions() (*[]string, error) {
 	var sessions []string
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
-			return r.db.Model(&Session{}).Where("ended_at IS NOT NULL").Where("ended_at > ?", time.Now().Add(-time.Hour * 48)).Select("id").Scan(&sessions).Error
+			return r.db.Model(&Session{}).Where("ended_at IS NOT NULL").Where("ended_at > ?", time.Now().Add(-time.Hour*48)).Select("id").Scan(&sessions).Error
 		},
 	)
 	if err != nil {
@@ -118,7 +120,7 @@ func (r *repository) GetCharacterActiveSession(characterID string) (*Session, er
 	return &session, err
 }
 
-func (r *repository) GetSessionByFleet(fleetID string) (*Session, error){
+func (r *repository) GetSessionByFleet(fleetID string) (*Session, error) {
 	var session Session
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
@@ -152,7 +154,7 @@ func (r *repository) SaveEveLogEventBatch(eventBatch *[]Event) error {
 func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTicket, error) {
 	newTicket := &EventStreamTicket{
 		BaseModel: BaseModel{
-			ID:	uuid.New().String(),
+			ID: uuid.New().String(),
 		},
 		SessionID: sessionID,
 	}
@@ -169,7 +171,7 @@ func (r *repository) GenerateEventStreamTicket(sessionID string) (*EventStreamTi
 	return newTicket, err
 }
 
-func (r *repository) GetActiveTicket(ticket string) (*EventStreamTicket, error){
+func (r *repository) GetActiveTicket(ticket string) (*EventStreamTicket, error) {
 	var stream EventStreamTicket
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
@@ -182,7 +184,7 @@ func (r *repository) GetActiveTicket(ticket string) (*EventStreamTicket, error){
 	return &stream, err
 }
 
-func (r *repository) GetEvents(since time.Time) (*[]Event, error){
+func (r *repository) GetEvents(since time.Time) (*[]Event, error) {
 	var events *[]Event
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
@@ -190,4 +192,24 @@ func (r *repository) GetEvents(since time.Time) (*[]Event, error){
 		},
 	)
 	return events, err
+}
+
+func (r *repository) GetStaticItemInfo(id uint64) (*StaticItemInfo, error) {
+	var staticItemInfo StaticItemInfo
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.First(&staticItemInfo, id).Error
+		},
+	)
+	return &staticItemInfo, err
+}
+
+func (r *repository) GetStaticSolarSystemInfo(id uint64) (*StaticSolarSystemInfo, error) {
+	var staticInfo StaticSolarSystemInfo
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.First(&staticInfo, id).Error
+		},
+	)
+	return &staticInfo, err
 }

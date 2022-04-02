@@ -11,6 +11,7 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	"gorm.io/gorm"
 	"net/http"
 	"strings"
 )
@@ -45,12 +46,24 @@ func MakeHTTPHandler(e endpoints.HttpEndpoints, logger log.Logger, validator uti
 		encodeNoContentResponse,
 		options...,
 	))
+	api.Methods(http.MethodGet).Path("/static/item").Handler(httptransport.NewServer(
+		e.StaticItemInfo,
+		decodeQueryStringRequest,
+		encodeResponse,
+		options...,
+	))
+	api.Methods(http.MethodGet).Path("/static/system").Handler(httptransport.NewServer(
+		e.StaticSolarSystemInfo,
+		decodeQueryStringRequest,
+		encodeResponse,
+		options...,
+	))
 
 	// Set up CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins:   []string{"*"},
 		AllowCredentials: true,
-		AllowedHeaders: []string{"*"},
+		AllowedHeaders:   []string{"*"},
 	})
 
 	handler := c.Handler(r)
@@ -60,6 +73,11 @@ func MakeHTTPHandler(e endpoints.HttpEndpoints, logger log.Logger, validator uti
 
 func decodeEmptyRequest(_ context.Context, _ *http.Request) (interface{}, error) {
 	return nil, nil
+}
+
+func decodeQueryStringRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := r.URL.Query()
+	return vars, nil
 }
 
 func extractHttpAuthentication(validator utilities.JwtValidator) func(ctx context.Context, r *http.Request) context.Context {
@@ -109,7 +127,7 @@ type errorer interface {
 	error() error
 }
 
-func encodeNoContentResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+func encodeNoContentResponse(_ context.Context, w http.ResponseWriter, _ interface{}) error {
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -138,10 +156,12 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func codeFrom(err error) int {
 	switch err {
-	case service.ErrSessionAlreadyRunning, service.ErrNotInSession, service.ErrNotInFleet:
+	case service.ErrSessionAlreadyRunning, service.ErrNotInSession, service.ErrNotInFleet, endpoints.ErrIdIsRequired, endpoints.ErrInvalidId:
 		return http.StatusBadRequest
 	case endpoints.ErrNotAuthenticated:
 		return http.StatusUnauthorized
+	case gorm.ErrRecordNotFound:
+		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError
 	}
