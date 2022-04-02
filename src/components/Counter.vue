@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed} from 'vue';
-import * as numeral from 'numeral';
+import * as numeral_ from 'numeral';
+const numeral = numeral_;
 
 const props = defineProps<{
     title: string;
