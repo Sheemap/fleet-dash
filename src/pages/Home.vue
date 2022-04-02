@@ -3,6 +3,7 @@ import TheNavBar from "../components/TheNavBar.vue";
 import TheEventStream from "../components/TheEventStream.vue";
 import AvgAmountOverTimeCounter from "../components/AvgAmountOverTimeCounter.vue"
 import RecentIncomingJams from "../components/RecentIncomingJams.vue"
+import RecentOutgoingJams from "../components/RecentOutgoingJams.vue"
 
 import { useEventStore } from "../js/eventStore";
 import {inject} from "vue";
@@ -22,13 +23,13 @@ const emitter = inject("emitter");
       <div class="p-3">
 
         <div class="grid  gap-3 grid-cols-1 grid-rows-auto md:grid-cols-4 md:grid-rows-3">
-          <AvgAmountOverTimeCounter event-type="IncomingDamageEvent" :period-seconds=5 />
-          <AvgAmountOverTimeCounter event-type="OutgoingDamageEvent" :period-seconds=5 />
+          <AvgAmountOverTimeCounter title="Incoming DPS" event-type="IncomingDamageEvent" :period-seconds=5 />
+          <AvgAmountOverTimeCounter title="Outgoing DPS" event-type="OutgoingDamageEvent" :period-seconds=5 />
           <div class="row-span-3">
             <RecentIncomingJams />
           </div>
           <div class="row-span-3">
-            <RecentIncomingJams />
+            <RecentOutgoingJams />
           </div>
 
           <div class="row-span-2">

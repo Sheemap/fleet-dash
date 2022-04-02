@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import {inject, reactive} from 'vue';
 import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue';
+
+
 interface JammedTarget {
   name: string
   shipId: number
   seconds: number
 }
+
 
 let jams : JammedTarget[] = reactive([]);
 
@@ -20,7 +23,7 @@ function getSeconds(weapon: string) {
 }
 
 const emitter = inject("emitter");
-emitter.on("IncomingJamEvent", (evt) => {
+emitter.on("OutgoingJamEvent", (evt) => {
   let seconds = getSeconds(evt.Weapon);
   let item = {
     name: evt.TargetName,
@@ -33,11 +36,12 @@ emitter.on("IncomingJamEvent", (evt) => {
     jams.splice(jams.indexOf(item), 1);
   }, item.seconds * 1000);
 });
+
 </script>
 
 <template>
   <div class="border rounded drop-shadow text-center bg-zinc-800 h-full">
-    <div class="text-2xl my-3">Incoming Jams</div>
+    <div class="text-2xl my-3">Outgoing Jams</div>
 
     <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
     <div v-for="jammed in jams" class="py-2">
