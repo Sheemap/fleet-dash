@@ -9,5 +9,6 @@
     "noImplicitAny": false,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true
   }
 }
