@@ -80,7 +80,7 @@ export const useFleetStore = defineStore('fleet', {
                 return Promise.resolve(this.members);
             }
 
-            if (this.character_fleet.fleet_id === 0) {
+            if (isNaN(this.character_fleet.fleet_id) || this.character_fleet.fleet_id === 0) {
                 return Promise.reject('No fleet ID');
             }
 

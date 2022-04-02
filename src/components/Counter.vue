@@ -7,7 +7,7 @@ const props = defineProps<{
     count: number;
 }>();
 
-let readableCount = computed(() => numeral(props.count).format('0[.]00a'));
+let readableCount = computed(() => numeral(props.count).format('0'));
 
 </script>
 
