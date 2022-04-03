@@ -14,6 +14,16 @@ namespace EveLogParser;
 
 public class LogParserService : ILogParserService, IDisposable
 {
+    private readonly ImmutableList<string> _defaultShipLabelOrder = new List<string>
+    {
+        "pilot name",
+        "corporation",
+        "ship type",
+        "default"
+    }.ToImmutableList();
+
+    private readonly ILogReaderService _logReaderService;
+
     private readonly ImmutableList<string> _shipLabelPriority = new List<string>
     {
         "ship type",
@@ -21,32 +31,35 @@ public class LogParserService : ILogParserService, IDisposable
         "ship name",
         "default",
         "corporation",
-        "alliance",
+        "alliance"
     }.ToImmutableList();
-    
-    private readonly ImmutableList<string> _defaultShipLabelOrder = new List<string>
-    {
-        "pilot name",
-        "corporation",
-        "ship type",
-        "default",
-    }.ToImmutableList();
-    
+
     private readonly List<string> _watchedCharacters = new();
     private ImmutableList<string> _shipLabelOrder;
-    
-    private readonly ILogReaderService _logReaderService;
-    
-    public Task Start() => _logReaderService.Start();
-    public void Stop() => _logReaderService.Stop();
 
     public LogParserService(ILogReaderService logReaderService, IOptionsMonitor<EveLogParserOptions> options)
     {
+        _shipLabelOrder = _defaultShipLabelOrder;
         _logReaderService = logReaderService;
         _logReaderService.OnFileRead += HandleLogFileRead;
-        
+
         UpdateShipOrder(options.CurrentValue);
         options.OnChange(UpdateShipOrder);
+    }
+
+    public void Dispose()
+    {
+        _logReaderService.OnFileRead -= HandleLogFileRead;
+    }
+
+    public Task Start()
+    {
+        return _logReaderService.Start();
+    }
+
+    public void Stop()
+    {
+        _logReaderService.Stop();
     }
 
     public event EventHandler<IncomingDamageEvent>? OnIncomingDamage;
@@ -66,7 +79,17 @@ public class LogParserService : ILogParserService, IDisposable
     public event EventHandler<IncomingJamEvent>? OnIncomingJam;
     public event EventHandler<OutgoingJamEvent>? OnOutgoingJam;
 
-    
+    public void StartWatchingCharacter(string characterId)
+    {
+        _watchedCharacters.Add(characterId);
+    }
+
+    public void StopWatchingCharacter(string characterId)
+    {
+        _watchedCharacters.Remove(characterId);
+    }
+
+
     private void UpdateShipOrder(EveLogParserOptions options)
     {
         if (string.IsNullOrWhiteSpace(options.OverviewPath))
@@ -74,17 +97,17 @@ public class LogParserService : ILogParserService, IDisposable
             _shipLabelOrder = _defaultShipLabelOrder;
             return;
         }
-        
+
         using var reader = new StreamReader(options.OverviewPath);
         var overviewYaml = reader.ReadToEnd();
-        
+
         var deserializer = new Deserializer();
         var settings = deserializer.Deserialize<Dictionary<string, object>>(overviewYaml);
-        
+
         try
         {
             var shipLabelOrder = ExtractShipLabelSettings(settings)
-                .Select(x => 
+                .Select(x =>
                     x.FirstOrDefault(y => y.Key == "type").Value ?? "default")
                 .OrderBy(x => x == "default")
                 .ToImmutableList();
@@ -95,16 +118,6 @@ public class LogParserService : ILogParserService, IDisposable
         {
             throw new YamlException("Error parsing overview", ex);
         }
-    }
-
-    public void StartWatchingCharacter(string characterId)
-    {
-        _watchedCharacters.Add(characterId);
-    }
-
-    public void StopWatchingCharacter(string characterId)
-    {
-        _watchedCharacters.Remove(characterId);
     }
 
     // Parse the overview yaml, extract the objects into key value pairs
@@ -155,10 +168,7 @@ public class LogParserService : ILogParserService, IDisposable
             .Where(x =>
             {
                 // Only include items that have `state == 1` which means they are visible
-                if (!int.TryParse(x.FirstOrDefault(y => y.Key == "state").Value, out var val))
-                {
-                    return false;
-                }
+                if (!int.TryParse(x.FirstOrDefault(y => y.Key == "state").Value, out var val)) return false;
                 return val == 1;
             })
             .OrderBy(x =>
@@ -168,17 +178,16 @@ public class LogParserService : ILogParserService, IDisposable
             });
     }
 
-    private void HandleLogFileRead(object source, LogFileReadEventArgs e)
+    private void HandleLogFileRead(object? source, LogFileReadEventArgs e)
     {
         Log.Debug("Processing log entry");
         if (!_watchedCharacters.Contains(e.CharacterId)) return;
 
         var lines = Encoding.UTF8.GetString(e.Content)
-            .Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+            .Split(new[] {"\r\n", "\r", "\n"}, StringSplitOptions.None)
             .ToList();
 
         foreach (var line in lines)
-        {
             CallUntilTrueReturned(e.CharacterId, line,
                 FindAndRaiseIncomingDamage,
                 FindAndRaiseOutgoingDamage,
@@ -196,7 +205,6 @@ public class LogParserService : ILogParserService, IDisposable
                 FindAndRaiseOutgoingHull,
                 FindAndRaiseIncomingJam,
                 FindAndRaiseOutgoingJam);
-        }
     }
 
     /// <summary>
@@ -224,17 +232,17 @@ public class LogParserService : ILogParserService, IDisposable
 
         var shipLabelGroupsRegex = useDefault ? EnglishRegex.DefaultShipLabels : EnglishRegex.ShipLabelGroups;
         var regexString = EnglishRegex.Timestamp + constantRegex + shipLabelGroupsRegex;
-        
+
         var regex = new Regex(regexString);
         var match = regex.Match(logLine);
         if (!match.Success) return false;
         Log.Debug("Log matches type {EventType}", typeof(T).Name);
-        
+
         var timestampStr = match.Groups.GetValueOrDefault("Timestamp")?.Value ?? "Unknown";
         var timestamp = ParseTimestamp(timestampStr);
-        
+
         var amountReceived = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-        
+
         var shipLabelGroups = match.Groups.Where<Group>(x => x.Name == "ShipLabel")
             .SelectMany(x => x.Captures)
             .Select(x => CleanMatch(x.Value))
@@ -249,7 +257,7 @@ public class LogParserService : ILogParserService, IDisposable
         {
             var label = labels[i];
             var matchedValue = shipLabelGroups[i];
-            
+
             dict.Add(label, matchedValue);
         }
 
@@ -258,10 +266,10 @@ public class LogParserService : ILogParserService, IDisposable
         var def = dict.GetValueOrDefault("default", "Unknown").Split(" - ");
         var weapon = def[0];
         var application = def.Length > 1 ? def[1] : "Unknown";
-        
-        
+
+
         var newEvent = argsFactory(timestamp,
-            characterId, 
+            characterId,
             amountReceived,
             dict.GetValueOrDefault("pilot name", "Unknown"),
             dict.GetValueOrDefault("ship type", "Unknown"),
@@ -280,8 +288,8 @@ public class LogParserService : ILogParserService, IDisposable
     }
 
     /// <summary>
-    /// Gets the labels for specific count of matched groups
-    /// Will take into account overview settings for hidden groups, and priority of those groups
+    ///     Gets the labels for specific count of matched groups
+    ///     Will take into account overview settings for hidden groups, and priority of those groups
     /// </summary>
     /// <param name="count"></param>
     /// <param name="useDefault"></param>
@@ -289,22 +297,28 @@ public class LogParserService : ILogParserService, IDisposable
     private ImmutableList<string> GetLabels(int count, bool useDefault)
     {
         var order = useDefault ? _defaultShipLabelOrder : _shipLabelOrder;
-        return order.Count == count ?
-            order :
+        return order.Count == count
+            ? order
+            :
             // Filter to only fields in our order list, then take only the amount we need, and order according to the order list
-            _shipLabelPriority.Where(x => order.Contains(x)).Take(count).OrderBy(x => order.IndexOf(x)).ToImmutableList();
+            _shipLabelPriority.Where(x => order.Contains(x)).Take(count).OrderBy(x => order.IndexOf(x))
+                .ToImmutableList();
     }
 
     private static DateTimeOffset ParseTimestamp(string timestampStr)
     {
         return !DateTimeOffset.TryParseExact(timestampStr, "yyyy.MM.dd HH:mm:ss", null,
-            DateTimeStyles.AssumeUniversal, out var timestamp) ? DateTimeOffset.UtcNow : timestamp;
+            DateTimeStyles.AssumeUniversal, out var timestamp)
+            ? DateTimeOffset.UtcNow
+            : timestamp;
     }
 
     private bool FindAndRaiseIncomingNos(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingNosEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingNosEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingNos, EnglishRegex.IncomingNos,
             argsBuilder, characterId, logLine);
@@ -312,8 +326,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingNos(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingNosEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNosEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingNos, EnglishRegex.OutgoingNos,
             argsBuilder, characterId, logLine);
@@ -321,8 +337,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingNeutEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingNeutEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingNeut, EnglishRegex.IncomingNeut,
             argsBuilder, characterId, logLine);
@@ -330,8 +348,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingNeut(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingNeutEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingNeutEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingNeut, EnglishRegex.OutgoingNeut,
             argsBuilder, characterId, logLine);
@@ -339,8 +359,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingShield(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingShieldEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingShieldEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingShield, EnglishRegex.IncomingShield,
             argsBuilder, characterId, logLine);
@@ -348,8 +370,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingShield(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingShieldEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingShieldEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingShield, EnglishRegex.OutgoingShield,
             argsBuilder, characterId, logLine);
@@ -357,8 +381,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingArmorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingArmorEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingArmor, EnglishRegex.IncomingArmor,
             argsBuilder, characterId, logLine);
@@ -366,8 +392,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingArmor(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingArmorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingArmorEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingArmor, EnglishRegex.OutgoingArmor,
             argsBuilder, characterId, logLine);
@@ -375,8 +403,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingCapacitorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingCapacitorEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingCapacitor, EnglishRegex.IncomingCapacitor,
             argsBuilder, characterId, logLine);
@@ -384,8 +414,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingCapacitorEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingCapacitorEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingCapacitor, EnglishRegex.OutgoingCapacitor,
             argsBuilder, characterId, logLine);
@@ -393,8 +425,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingHull(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingHullEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingHullEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingHull, EnglishRegex.IncomingHull,
             argsBuilder, characterId, logLine);
@@ -402,8 +436,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingHull(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingHullEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingHullEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingHull, EnglishRegex.OutgoingHull,
             argsBuilder, characterId, logLine);
@@ -411,8 +447,10 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseIncomingDamage(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingDamageEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingDamage, EnglishRegex.IncomingDamage,
             argsBuilder, characterId, logLine, true);
@@ -420,33 +458,34 @@ public class LogParserService : ILogParserService, IDisposable
 
     private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingDamageEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
             argsBuilder, characterId, logLine, true);
     }
-    
+
     private bool FindAndRaiseIncomingJam(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new IncomingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new IncomingJamEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnIncomingJam, EnglishRegex.IncomingJam,
             argsBuilder, characterId, logLine);
     }
-    
+
     private bool FindAndRaiseOutgoingJam(string characterId, string logLine)
     {
-        var argsBuilder = (DateTimeOffset timestamp, string characterId, int amount, string pilot, string ship, string weapon, string application, string corporation, string alliance) =>
-            new OutgoingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
+        var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
+                string weapon, string application, string corporation, string alliance) =>
+            new OutgoingJamEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
+                alliance);
 
         return FindAndRaiseEvent(OnOutgoingJam, EnglishRegex.OutgoingJam,
             argsBuilder, characterId, logLine);
-    }
-
-    public void Dispose()
-    {
-        _logReaderService.OnFileRead -= HandleLogFileRead;
     }
 }

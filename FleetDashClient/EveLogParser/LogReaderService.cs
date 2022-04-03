@@ -118,12 +118,13 @@ internal class LogReaderService : ILogReaderService, IDisposable
             var eventArgs = new LogFileReadEventArgs(charId, readBytes);
             raiseEvent(this, eventArgs);
         }
-        catch (OverflowException ex)
+        catch (OverflowException)
         {
             _logProgress[e.FullPath] = 0;
         }
-        catch(Exception ex)
+        catch (Exception)
         {
+            // ignored
         }
     }
 

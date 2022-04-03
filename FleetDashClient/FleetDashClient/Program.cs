@@ -46,11 +46,7 @@ var dbFileLocation = Path.Combine(appLocation, "fleetdash.db");
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite($"Data Source={dbFileLocation}"));
 
-builder.Services.AddEveLogParser(x =>
-{
-    x.OverviewPath = builder.Configuration.GetValue<string>("OverviewPath");
-    x.LogDirectory = builder.Configuration.GetValue<string>("LogDirectory");
-});
+builder.Services.AddEveLogParser(builder.Configuration);
 
 builder.Services.AddEventAggregator(options =>
     options.AutoRefresh = true);
