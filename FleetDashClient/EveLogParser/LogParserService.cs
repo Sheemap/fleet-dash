@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Immutable;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using EveLogParser.Builder;
@@ -13,8 +14,26 @@ namespace EveLogParser;
 
 public class LogParserService : ILogParserService, IDisposable
 {
+    private readonly ImmutableList<string> _shipLabelPriority = new List<string>
+    {
+        "ship type",
+        "pilot name",
+        "ship name",
+        "default",
+        "corporation",
+        "alliance",
+    }.ToImmutableList();
+    
+    private readonly ImmutableList<string> _defaultShipLabelOrder = new List<string>
+    {
+        "pilot name",
+        "corporation",
+        "ship type",
+        "default",
+    }.ToImmutableList();
+    
     private readonly List<string> _watchedCharacters = new();
-    private string? _overviewRegex;
+    private ImmutableList<string> _shipLabelOrder;
     
     private readonly ILogReaderService _logReaderService;
     
@@ -26,8 +45,8 @@ public class LogParserService : ILogParserService, IDisposable
         _logReaderService = logReaderService;
         _logReaderService.OnFileRead += HandleLogFileRead;
         
-        UpdateRegex(options.CurrentValue);
-        options.OnChange(UpdateRegex);
+        UpdateShipOrder(options.CurrentValue);
+        options.OnChange(UpdateShipOrder);
     }
 
     public event EventHandler<IncomingDamageEvent>? OnIncomingDamage;
@@ -47,11 +66,12 @@ public class LogParserService : ILogParserService, IDisposable
     public event EventHandler<IncomingJamEvent>? OnIncomingJam;
     public event EventHandler<OutgoingJamEvent>? OnOutgoingJam;
 
-    private void UpdateRegex(EveLogParserOptions options)
+    
+    private void UpdateShipOrder(EveLogParserOptions options)
     {
         if (string.IsNullOrWhiteSpace(options.OverviewPath))
         {
-            _overviewRegex = null;
+            _shipLabelOrder = _defaultShipLabelOrder;
             return;
         }
         
@@ -63,10 +83,13 @@ public class LogParserService : ILogParserService, IDisposable
         
         try
         {
-            var shipLabels = ExtractShipLabelSettings(settings);
-            var shipLabelRegex = BuildOverviewRegex(shipLabels);
+            var shipLabelOrder = ExtractShipLabelSettings(settings)
+                .Select(x => 
+                    x.FirstOrDefault(y => y.Key == "type").Value ?? "default")
+                .OrderBy(x => x == "default")
+                .ToImmutableList();
 
-            _overviewRegex = shipLabelRegex;
+            _shipLabelOrder = shipLabelOrder;
         }
         catch (Exception ex)
         {
@@ -84,7 +107,9 @@ public class LogParserService : ILogParserService, IDisposable
         _watchedCharacters.Remove(characterId);
     }
 
-    private IOrderedEnumerable<IEnumerable<KeyValuePair<string, string?>>> ExtractShipLabelSettings(
+    // Parse the overview yaml, extract the objects into key value pairs
+    // Hard to keep a map in your mind of this, maybe its worth building a specific model?
+    private static IEnumerable<IEnumerable<KeyValuePair<string, string?>>> ExtractShipLabelSettings(
         IReadOnlyDictionary<string, object> parsedYaml)
     {
         var shipLabelOrderList = parsedYaml["shipLabelOrder"] as List<object> ??
@@ -127,67 +152,20 @@ public class LogParserService : ILogParserService, IDisposable
                         });
                     });
             })
+            .Where(x =>
+            {
+                // Only include items that have `state == 1` which means they are visible
+                if (!int.TryParse(x.FirstOrDefault(y => y.Key == "state").Value, out var val))
+                {
+                    return false;
+                }
+                return val == 1;
+            })
             .OrderBy(x =>
             {
                 var typePair = x.FirstOrDefault(y => y.Key == "type");
                 return shipLabelOrder.IndexOf(typePair.Value ?? "default");
             });
-    }
-
-    private string BuildOverviewRegex(IOrderedEnumerable<IEnumerable<KeyValuePair<string, string?>>> labelSettings)
-    {
-        var shipLabelRegex = new StringBuilder("(?:(?:.*ffffffff>");
-        foreach (var labelSetting in labelSettings)
-        {
-            var label = labelSetting.ToList();
-
-            var safePre = Regex.Escape(label.FirstOrDefault(y => y.Key == "pre").Value ?? string.Empty);
-            var safePost = Regex.Escape(label.FirstOrDefault(y => y.Key == "post").Value ?? string.Empty);
-
-            var type = label.FirstOrDefault(x => x.Key == "type").Value;
-            var state = label.FirstOrDefault(y => y.Key == "state").Value;
-            if (string.IsNullOrWhiteSpace(state) && type is "pilot name")
-                shipLabelRegex.Append("(?<Name>)");
-            else if (string.IsNullOrWhiteSpace(state) && type is "ship type") shipLabelRegex.Append("(?<Ship>)");
-
-            switch (type)
-            {
-                case "default":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre})?");
-                    break;
-                }
-                case "alliance":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre}(?:<localized .*?>)?(?<Alliance>.*?){safePost})?");
-                    break;
-                }
-                case "corporation":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre}(?:<localized .*?>)?(?<Corporation>.*?){safePost})?");
-                    break;
-                }
-                case "ship name":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre}(?:<localized .*?>)?(?<ShipName>.*?){safePost})?");
-                    break;
-                }
-                case "pilot name":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre}(?:<localized .*?>)?(?<Pilot>.*?){safePost})");
-                    break;
-                }
-                case "ship type":
-                {
-                    shipLabelRegex.Append((string?)$"(?:{safePre}(?:<localized .*?>)?(?<Ship>.*?){safePost})");
-                    break;
-                }
-            }
-        }
-
-        shipLabelRegex.Append(".*> \\-(?: (?:<Localized .*?>)?(?<Weapon>.*?)(?: \\-|<)|.*))");
-        shipLabelRegex.Append($"|{EnglishRegex.PilotAndWeapon})?");
-        return shipLabelRegex.ToString();
     }
 
     private void HandleLogFileRead(object source, LogFileReadEventArgs e)
@@ -237,41 +215,90 @@ public class LogParserService : ILogParserService, IDisposable
     }
 
     private bool FindAndRaiseEvent<T>(EventHandler<T>? eventHandler, string constantRegex,
-        Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory, string characterId,
-        string logLine, bool useOverviewRegex = true)
+        Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory,
+        string characterId,
+        string logLine, bool useDefault = false)
         where T : EveLogEventArgs
     {
         if (eventHandler == null) return false;
 
-        var charRegex = useOverviewRegex && _overviewRegex != null
-            ? _overviewRegex
-            : EnglishRegex.PilotAndWeapon;
-
-        var regex = new Regex(EnglishRegex.Timestamp + constantRegex + charRegex);
+        var shipLabelGroupsRegex = useDefault ? EnglishRegex.DefaultShipLabels : EnglishRegex.ShipLabelGroups;
+        var regexString = EnglishRegex.Timestamp + constantRegex + shipLabelGroupsRegex;
+        
+        var regex = new Regex(regexString);
         var match = regex.Match(logLine);
         if (!match.Success) return false;
         Log.Debug("Log matches type {EventType}", typeof(T).Name);
-
         
         var timestampStr = match.Groups.GetValueOrDefault("Timestamp")?.Value ?? "Unknown";
-        if (!DateTime.TryParseExact(timestampStr, "yyyy.MM.dd HH:mm:ss", null,
-                DateTimeStyles.AssumeUniversal, out var timestamp))
-        {
-            timestamp = DateTime.UtcNow;
-        }
-        
+        var timestamp = ParseTimestamp(timestampStr);
         
         var amountReceived = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-        var toName = match.Groups.GetValueOrDefault("Pilot")?.Value ?? "Unknown";
-        var toShip = match.Groups.GetValueOrDefault("Ship")?.Value ?? "Unknown";
-        var weapon = match.Groups.GetValueOrDefault("Weapon")?.Value ?? "Unknown";
-        var application = match.Groups.GetValueOrDefault("Application")?.Value ?? "Unknown";
-        var corporation = match.Groups.GetValueOrDefault("Corporation")?.Value ?? "Unknown";
-        var alliance = match.Groups.GetValueOrDefault("Alliance")?.Value ?? "Unknown";
-        var newEvent = argsFactory(timestamp, characterId, amountReceived, toName, toShip, weapon, application, corporation,alliance);
+        
+        var shipLabelGroups = match.Groups.Where<Group>(x => x.Name == "ShipLabel")
+            .SelectMany(x => x.Captures)
+            .Select(x => CleanMatch(x.Value))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+
+        var labels = GetLabels(shipLabelGroups.Count, useDefault);
+
+        // Populate dictionary with our values and labels
+        var dict = new Dictionary<string, string>();
+        for (var i = 0; i < labels.Count; i++)
+        {
+            var label = labels[i];
+            var matchedValue = shipLabelGroups[i];
+            
+            dict.Add(label, matchedValue);
+        }
+
+        // Im not amazing at regex, and was struggling to get weapon and application parsed out separately
+        // So am doing it later in code here
+        var def = dict.GetValueOrDefault("default", "Unknown").Split(" - ");
+        var weapon = def[0];
+        var application = def.Length > 1 ? def[1] : "Unknown";
+        
+        
+        var newEvent = argsFactory(timestamp,
+            characterId, 
+            amountReceived,
+            dict.GetValueOrDefault("pilot name", "Unknown"),
+            dict.GetValueOrDefault("ship type", "Unknown"),
+            weapon,
+            application,
+            dict.GetValueOrDefault("corporation", "Unknown"),
+            dict.GetValueOrDefault("alliance", "Unknown"));
 
         eventHandler(this, newEvent);
         return true;
+    }
+
+    private static string CleanMatch(string matchedText)
+    {
+        return matchedText.Trim().Trim('-').Trim(' ');
+    }
+
+    /// <summary>
+    /// Gets the labels for specific count of matched groups
+    /// Will take into account overview settings for hidden groups, and priority of those groups
+    /// </summary>
+    /// <param name="count"></param>
+    /// <param name="useDefault"></param>
+    /// <returns></returns>
+    private ImmutableList<string> GetLabels(int count, bool useDefault)
+    {
+        var order = useDefault ? _defaultShipLabelOrder : _shipLabelOrder;
+        return order.Count == count ?
+            order :
+            // Filter to only fields in our order list, then take only the amount we need, and order according to the order list
+            _shipLabelPriority.Where(x => order.Contains(x)).Take(count).OrderBy(x => order.IndexOf(x)).ToImmutableList();
+    }
+
+    private static DateTimeOffset ParseTimestamp(string timestampStr)
+    {
+        return !DateTimeOffset.TryParseExact(timestampStr, "yyyy.MM.dd HH:mm:ss", null,
+            DateTimeStyles.AssumeUniversal, out var timestamp) ? DateTimeOffset.UtcNow : timestamp;
     }
 
     private bool FindAndRaiseIncomingNos(string characterId, string logLine)
@@ -388,7 +415,7 @@ public class LogParserService : ILogParserService, IDisposable
             new IncomingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingDamage, EnglishRegex.IncomingDamage,
-            argsBuilder, characterId, logLine, false);
+            argsBuilder, characterId, logLine, true);
     }
 
     private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
@@ -397,7 +424,7 @@ public class LogParserService : ILogParserService, IDisposable
             new OutgoingDamageEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
-            argsBuilder, characterId, logLine, false);
+            argsBuilder, characterId, logLine, true);
     }
     
     private bool FindAndRaiseIncomingJam(string characterId, string logLine)
@@ -406,7 +433,7 @@ public class LogParserService : ILogParserService, IDisposable
             new IncomingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnIncomingJam, EnglishRegex.IncomingJam,
-            argsBuilder, characterId, logLine, true);
+            argsBuilder, characterId, logLine);
     }
     
     private bool FindAndRaiseOutgoingJam(string characterId, string logLine)
@@ -415,7 +442,7 @@ public class LogParserService : ILogParserService, IDisposable
             new OutgoingJamEvent(timestamp, characterId, amount, pilot, ship, weapon, application, corporation, alliance);
 
         return FindAndRaiseEvent(OnOutgoingJam, EnglishRegex.OutgoingJam,
-            argsBuilder, characterId, logLine, true);
+            argsBuilder, characterId, logLine);
     }
 
     public void Dispose()
