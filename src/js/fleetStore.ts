@@ -57,18 +57,29 @@ export const useFleetStore = defineStore('fleet', {
                         }
                     })
                     .then(res => {
+                        if (res.status >= 400 && res.status < 500) {
+                            this.character_fleet = {
+                                fleet_id: 0,
+                                role: '',
+                                squad_id: 0,
+                                wing_id: 0,
+                            };
+                        }
+
                         let expires = res.headers.get('Expires');
                         if (expires) {
                             this._character_fleet_expires_at = new Date(expires).getTime();
-                        } else {
-                            this._character_fleet_expires_at = 0;
                         }
 
                         return res.json();
                     })
                     .then(data => {
-                        this.character_fleet = data;
-                        resolve(data);
+                        if (data.error){
+                            reject(data.error);
+                        } else {
+                            this.character_fleet = data;
+                            resolve(data);
+                        }
                     })
                     .catch(err => {
                         reject(err);
@@ -91,18 +102,24 @@ export const useFleetStore = defineStore('fleet', {
                     }
                 })
                 .then(res => {
+                    if (res.status >= 400 && res.status < 500) {
+                        this.members = [];
+                    }
+
                     let expires = res.headers.get('Expires');
                     if (expires) {
                         this._members_expires_at = new Date(expires).getTime();
-                    } else {
-                        this._members_expires_at = 0;
                     }
 
                     return res.json();
                 })
                 .then(data => {
-                    this.members = data;
-                    resolve(data);
+                    if (data.error){
+                        reject(data.error);
+                    } else {
+                        this.members = data;
+                        resolve(data);
+                    }
                 })
                 .catch(err => {
                     reject(err);

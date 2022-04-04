@@ -22,7 +22,7 @@ const userStore = useUserStore();
 let fleetBoss = computed(() : boolean => fleetStore.able_to_fetch_members);
 
 let shipSummary = computed(() : SummaryShip[] => {
-  let ships = (fleetStore.members || []).map(m => m.ship_type_id);
+  let ships = fleetStore.members.map(m => m.ship_type_id);
   let counts = ships.reduce((acc, shipId) => {
     acc[shipId] = (acc[shipId] || 0) + 1;
     return acc;
