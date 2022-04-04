@@ -1,11 +1,13 @@
-<script setup lang="ts">
+<script setup>
   import { inject, ref } from "vue";
   import { useUserStore } from "../js/userStore";
   import { useEventStore } from "../js/eventStore";
+  import useToast from "../js/toast";
 
   const emitter = inject("emitter");
   const userStore = useUserStore();
   const eventStore = useEventStore();
+  let toast = useToast();
 
   let authenticated = ref(false);
   let starting = ref(false);
@@ -61,8 +63,7 @@
           // If no reason for close, we assume it's a request timeout, or some other retryable event
           // else its a permanent error
           if(event.reason !== "" && event.reason !== "invalid ticket"){
-            // TODO: dont use alert, use a snackbar
-            alert('Connection closed: ' + event.reason);
+            toast.error('Connection closed: ' + event.reason);
             eventStore.active = false;
             eventStore.resetTicket();
             starting.value = false;
@@ -70,11 +71,11 @@
             // If we have tried to reconnect too many times, we dont want to keep trying
             if(eventStore.stream_failure_count < 5)
             {
+              toast.warning("Connection closed, retrying. (" + eventStore.stream_failure_count + ")");
               // Try to reconnect with an exponential backoff
               setTimeout(tryStartStream, Math.pow(2, eventStore.stream_failure_count) * 1000, startSession);
             } else{
-              // TODO: dont use alert, use a snackbar
-              alert('We have tried to reconnect too many times. Please refresh the page to try again.');
+              toast.error('We have tried to reconnect too many times. Please refresh the page to try again.');
               eventStore.active = false;
               eventStore.resetTicket();
               starting.value = false;

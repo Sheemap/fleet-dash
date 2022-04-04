@@ -6,6 +6,7 @@ import '../index.css'
 import {Component, createApp, h, RendererElement, RendererNode, VNode} from 'vue'
 
 import { createPinia } from 'pinia'
+import 'vue-toast-notification/dist/theme-sugar.css';
 import mitt from "mitt";
 
 const routes = new Map<string, Component>();
