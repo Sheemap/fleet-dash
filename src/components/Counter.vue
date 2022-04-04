@@ -4,6 +4,7 @@ import numeral from 'numeral';
 
 const props = defineProps<{
     title: string;
+    subtitle: string | null;
     count: number;
 }>();
 
@@ -14,6 +15,7 @@ let readableCount = computed(() => numeral(props.count).format('0'));
 <template>
     <div class="border rounded drop-shadow text-center bg-zinc-800">
         <div class="text-2xl mt-4">{{title}}</div>
-        <div class="text-6xl font-extrabold my-10">{{readableCount}}</div>
+        <div class="text-zinc-400 italic">{{subtitle}}</div>
+        <div class="text-6xl font-extrabold mb-5">{{readableCount}}</div>
     </div>
 </template>

@@ -8,6 +8,8 @@ const props = defineProps<{
     periodSeconds: number;
 }>();
 
+const subtitle = `Average over past ${props.periodSeconds} seconds`;
+
 let runningAvg = ref(0);
 let count = ref(0);
 
@@ -29,5 +31,5 @@ emitter.on(props.eventType, (evt) => {
 </script>
 
 <template>
-    <Counter :title="eventType" :count="runningAvg" />
+    <Counter :title="eventType" :count="runningAvg" :subtitle="subtitle" />
 </template>
