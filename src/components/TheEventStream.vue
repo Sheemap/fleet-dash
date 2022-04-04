@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
   import { inject, ref } from "vue";
   import { useUserStore } from "../js/userStore";
   import { useEventStore } from "../js/eventStore";
@@ -25,16 +25,15 @@
           eventStore.active = true;
 
           function timeoutFunc() {
+            if(ws.readyState !== WebSocket.OPEN) {
+              return;
+            }
             ws.send(JSON.stringify({
               type: 'ping'
             }));
-
-            if(ws.readyState === WebSocket.OPEN) {
-              setTimeout(timeoutFunc, 5000);
-            }
           }
 
-          timeoutFunc();
+          setInterval(timeoutFunc, 5000);
         });
 
         ws.addEventListener('message', function incoming(data) {
@@ -98,7 +97,7 @@
           }
         });
     })
-    .catch(err => starting.value = false);
+    .catch(_ => starting.value = false);
   }
 
   // Try to start the stream if we are authenticated

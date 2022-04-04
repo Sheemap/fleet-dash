@@ -12,15 +12,22 @@ let running = ref(false);
 let errored = ref(false);
 let nextTryFetchMember = ref(0);
 
-async function updateFleet(failCount: number) {
+let lock = ref(false);
+async function updateFleet() {
+  if (lock.value){
+    return;
+  }
+
+  lock.value = true;
+
   if (!eventStore.active) {
     running.value = false;
+    lock.value = false;
     return;
   }
 
   running.value = true;
-
-  try {
+  try{
     let token = await userStore.getActiveToken();
     await fleetStore.fetchFleet(userStore.character_id, token);
 
@@ -35,26 +42,20 @@ async function updateFleet(failCount: number) {
         fleetStore.able_to_fetch_members = false;
       }
     }
-
-    // 5 seconds is the lowest cache time for these APIs
-    setTimeout(updateFleet, 1000 * 5, 0);
-
   } catch (e) {
-    console.error(e);
-    if (failCount > 5) {
-      running.value = false;
-      errored.value = true;
-      alert('Failed to update fleet info! Please refresh the page to retry. If the problem persists, please contact the developer.');
-      return;
-    }
-    // Exponential backoff
-    setTimeout(updateFleet, Math.pow(2, failCount) * 5000, failCount + 1);
+    // Ignore, likely because we are not in a fleet
   }
-}
 
+  lock.value = false;
+}
+let interval;
 while (!errored.value) {
   if (!running.value && eventStore.active) {
-    updateFleet(0);
+    updateFleet();
+    interval = setInterval(updateFleet, 5000);
+  }
+  if (!eventStore.active && interval) {
+    clearInterval(interval);
   }
 
   await new Promise(resolve => setTimeout(resolve, 1000));
