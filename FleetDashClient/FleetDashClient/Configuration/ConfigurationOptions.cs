@@ -2,5 +2,5 @@
 
 public class ConfigurationOptions
 {
-    public string Path { get; set; }
+    public string? Path { get; set; }
 }

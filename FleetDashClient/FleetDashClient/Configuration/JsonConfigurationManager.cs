@@ -36,7 +36,7 @@ public class JsonConfigurationManager
         File.WriteAllText(_options.Path, JsonConvert.SerializeObject(updatedConfig, Formatting.Indented));
     }
 
-    public static void EnsureConfigFileExists(string path)
+    public static void EnsureConfigFileExists(string? path)
     {
         if (File.Exists(path)) return;
         

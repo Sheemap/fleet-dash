@@ -14,9 +14,6 @@ public static class EnglishRegex
     // This will be the most robust way that works across essentially any overview settings
     public const string ShipLabelGroups =
         @"(.*?[^(A-Z|a-z|0-9|\-|'| |<|\])](?<ShipLabel>[A-Z|a-z|0-9|\-|'| ]+)[^(A-Z|a-z|0-9|\-|'| |>|[)].*?)*";
-    
-    public const string PilotAndWeapon =
-        @"(?:.*ffffffff>(?<Pilot>[^\(\)<>]*)?(\[(?<Tag>.*)\])(?:.*\((?<Ship>.*)\)<|<)/b.*> \-(?: (?<Weapon>.*?)(?: \-|<)|.*)) (?<Application>[A-z]*$)";
 
     public const string IncomingDamage = @"\(combat\).*?<b>(?<Amount>[0-9]+).*?from";
     public const string OutgoingDamage = @"\(combat\).*?<b>(?<Amount>[0-9]+).*?to";
@@ -40,7 +37,4 @@ public static class EnglishRegex
 
     public const string IncomingJam = @"\(combat\).*?You're.*?jammed.*?by";
     public const string OutgoingJam = @$"\(combat\){ShipLabelGroups}jammed";
-    
-    
-    
 }
