@@ -20,4 +20,19 @@ public static class EveClient
         return fleet.fleet_id.ToString();
 
     }
+    
+    public static async Task<int?> GetCharacterShipTypeId(string characterId, string token)
+    {
+        var client = new RestClient("https://esi.evetech.net/latest");
+        var request = new RestRequest("/characters/{character_id}/ship/", Method.Get);
+        request.AddHeader("Authorization", $"Bearer {token}");
+        request.AddUrlSegment("character_id", characterId);
+        
+        var response = await client.ExecuteGetAsync(request);
+        if (response.StatusCode != HttpStatusCode.OK) return null;
+        
+        var ship = JsonConvert.DeserializeObject<dynamic>(response.Content);
+        return ship.ship_type_id;
+
+    }
 }

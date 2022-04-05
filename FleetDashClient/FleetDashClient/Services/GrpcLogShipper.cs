@@ -126,7 +126,7 @@ public class GrpcLogShipper : IDisposable
                 return;
             }
 
-            
+            var shipTypeId = await EveClient.GetCharacterShipTypeId(freshToken.CharacterId, freshToken.AccessToken);
 
             var eventType = args.GetType().ToString().Split('.').Last();
             var eveEvent = new EveLogEvent
@@ -134,6 +134,7 @@ public class GrpcLogShipper : IDisposable
                 Event = eventType,
                 Timestamp = args.Timestamp.ToTimestamp(),
                 CharacterId = args.CharacterId,
+                CharacterShipTypeId = shipTypeId ?? 0,
                 Amount = args.Amount,
                 Pilot = args.Pilot,
                 Ship = args.Ship,
@@ -142,7 +143,7 @@ public class GrpcLogShipper : IDisposable
                 Corporation = args.Corporation,
                 Alliance = args.Alliance,
             };
-            _eventQueue.Add(eveEvent); 
+            _eventQueue.Add(eveEvent);
             await _eventAggregator.PublishAsync(new LogStreamedEventArgs(args.CharacterId));
         });
     }

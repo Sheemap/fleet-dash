@@ -20,7 +20,7 @@ public class EveLoginViewModel
     private const string RedirectUrl = "http://localhost:7845/eve-sso/callback";
     private const string TokenUrl = "https://login.eveonline.com/v2/oauth/token";
     private const string AuthUrlBase = "https://login.eveonline.com/v2/oauth/authorize";
-    private readonly string[] Scopes = { "esi-fleets.read_fleet.v1" };
+    private readonly string[] Scopes = { "esi-fleets.read_fleet.v1", "esi-location.read_ship_type.v1" };
     
     private readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
     private readonly List<string> _validState = new();
@@ -43,7 +43,7 @@ public class EveLoginViewModel
             authUrl.Append("?response_type=code");
             authUrl.Append("&redirect_uri=" + RedirectUrl);
             authUrl.Append("&client_id=" + ClientId);
-            authUrl.Append("&scope=" + string.Join("+", Scopes));
+            authUrl.Append("&scope=" + string.Join(" ", Scopes));
             authUrl.Append("&state=" + GenerateState());
             
     
@@ -57,8 +57,7 @@ public class EveLoginViewModel
                 // hack because of this: https://github.com/dotnet/corefx/issues/10361
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    url = url.Replace("&", "^&");
-                    Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") { CreateNoWindow = true });
+                    Process.Start(new ProcessStartInfo("cmd", $"/c start \"\" \"{url}\"") { CreateNoWindow = true });
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {

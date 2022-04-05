@@ -17,13 +17,14 @@ message EveLogEvent{
   string event = 1;
   google.protobuf.Timestamp timestamp = 2;
   string characterId = 3;
-  int32 amount = 4;
-  string pilot = 5;
-  string ship = 6;
-  string weapon = 7;
-  string application = 8;
-  string corporation = 9;
-  string alliance = 10;
+  int32 characterShipTypeId = 4;
+  int32 amount = 5;
+  string pilot = 6;
+  string ship = 7;
+  string weapon = 8;
+  string application = 9;
+  string corporation = 10;
+  string alliance = 11;
 }
 
 message BatchedEveLogEventResponse{}
