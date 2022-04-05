@@ -156,6 +156,42 @@ export const useFleetStore = defineStore('fleet', {
                 });
             });
         },
+        fetchItemId(itemName: string, token: TokenSet) : Promise<number> {
+            const cacheKey = 'item_name_'+ itemName;
+            let cachedId = localStorage.getItem(cacheKey);
+
+            if  (cachedId) {
+                let id = parseInt(cachedId);
+
+                if (isNaN(id)) {
+                    localStorage.removeItem(cacheKey);
+                }else{
+                    return Promise.resolve(id);
+                }
+            }
+
+            return new Promise((resolve, reject) => {
+                fetch(`${import.meta.env.VITE_FLEETDASH_CORE_SCHEME}://${import.meta.env.VITE_FLEETDASH_CORE_URL}/api/static/item?name=${itemName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token.access_token}`
+                    }
+                })
+                .then(res => {
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.ID && typeof data.ID === 'number') {
+                        localStorage.setItem(cacheKey, data.ID);
+                        resolve(data.ID);
+                    } else {
+                        reject("Item ID is empty.");
+                    }
+                })
+                .catch(err => {
+                    reject(err);
+                });
+            });
+        },
         fetchSystemName(systemId: number, token: TokenSet) : Promise<string> {
             const cacheKey = 'system_'+ systemId.toString();
             let cachedName = localStorage.getItem(cacheKey);

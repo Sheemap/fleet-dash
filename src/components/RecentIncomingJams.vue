@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import {inject, reactive} from 'vue';
 import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue';
+import {useUserStore} from "../js/userStore";
 interface JammedTarget {
   name: string
   shipId: number
   seconds: number
 }
+
+const userStore = useUserStore();
 
 let jams : JammedTarget[] = reactive([]);
 
@@ -22,11 +25,12 @@ function getSeconds(weapon: string) {
 const emitter = inject("emitter");
 emitter.on("IncomingJamEvent", (evt) => {
   let seconds = getSeconds(evt.Weapon);
+
   let item = {
-    name: evt.Pilot,
-    shipId: 587,
-    seconds: seconds,
-  }
+    name: "",
+    shipId: evt.CharacterShipTypeID,
+    seconds: seconds
+  };
   jams.push(item);
 
   setTimeout(() => {
