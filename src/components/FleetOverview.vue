@@ -54,7 +54,8 @@ function getSystemName(systemId: number) : Ref<string> {
 </script>
 
 <template>
-    <div v-if="fleetBoss" class="border rounded drop-shadow bg-zinc-800 h-full">
+    <div class="border rounded drop-shadow bg-zinc-800 h-full">
+      <div v-if="fleetBoss">
       <div class="w-full h-7 px-2 flex flex-row overflow-clip">
         <span class="max-h-2 text-xl flex-grow">Fleet Overview</span>
       </div>
@@ -75,5 +76,7 @@ function getSystemName(systemId: number) : Ref<string> {
             </div>
           </div>
         </div>
+        </div>
+      <div v-else class="py-5 text-zinc-400 italic text-center">Only the FleetBoss can access the overview</div>
     </div>
 </template>
