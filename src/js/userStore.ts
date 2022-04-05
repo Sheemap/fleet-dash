@@ -111,7 +111,7 @@ export const useUserStore = defineStore('user', {
                     });
             })
         },
-        getPortraitUrl(){
+        getPortraitUrl() : Promise<string> {
             if(this._portrait_url !== ''){
                 return new Promise((resolve, _) => resolve(this._portrait_url));
             }
