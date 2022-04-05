@@ -18,7 +18,7 @@ type GrpcEndpoints struct {
 	PostEveLogEventBatch endpoint.Endpoint
 }
 
-type EmptyResponse struct {}
+type EmptyResponse struct{}
 
 func MakeGrpcEndpoints(es service.EventIngestionService, ss service.SessionService, l log.Logger) GrpcEndpoints {
 
@@ -26,7 +26,6 @@ func MakeGrpcEndpoints(es service.EventIngestionService, ss service.SessionServi
 	postEveLogEventEndpoint = requireAuthenticated(postEveLogEventEndpoint)
 	postEveLogEventEndpoint = setGrpcErrorCodes(postEveLogEventEndpoint)
 	postEveLogEventEndpoint = grpcLoggingMiddleware(postEveLogEventEndpoint, l)
-
 
 	return GrpcEndpoints{
 		PostEveLogEventBatch: postEveLogEventEndpoint,
@@ -56,21 +55,22 @@ func makePostEveLogEventEndpoint(es service.EventIngestionService, ss service.Se
 		eveLogEvents := make([]service.EveLogEvent, len(req.Events))
 		for i, event := range req.Events {
 			eveLogEvents[i] = service.EveLogEvent{
-				Type: event.Event,
-				CharacterID: event.CharacterId,
-				Timestamp: event.Timestamp.AsTime(),
-				Amount: event.Amount,
-				Pilot: event.Pilot,
-				Ship: event.Ship,
-				Weapon: event.Weapon,
-				Application: event.Application,
-				Corporation: event.Corporation,
-				Alliance: event.Alliance,
+				Type:                event.Event,
+				CharacterID:         event.CharacterId,
+				CharacterShipTypeID: event.CharacterShipTypeId,
+				Timestamp:           event.Timestamp.AsTime(),
+				Amount:              event.Amount,
+				Pilot:               event.Pilot,
+				Ship:                event.Ship,
+				Weapon:              event.Weapon,
+				Application:         event.Application,
+				Corporation:         event.Corporation,
+				Alliance:            event.Alliance,
 			}
 		}
 
 		err = es.PersistEveLogEventBatch(*sessionId, eveLogEvents)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 

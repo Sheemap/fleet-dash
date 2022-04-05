@@ -35,7 +35,7 @@ func main() {
 	repository := data.NewRepository()
 
 	eventIngestionService := service.NewEventIngestionService(repository)
-	eventStreamService := service.NewEventStreamService(repository)
+	eventStreamService := service.NewEventStreamService(repository, logger)
 	sessionService := service.NewSessionService(repository, logger)
 	staticDataService := service.NewStaticDataService(repository, logger)
 

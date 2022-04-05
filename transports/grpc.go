@@ -4,17 +4,17 @@ import (
 	"context"
 	"fleet-dash-core/endpoints"
 	pb "fleet-dash-core/protobuf"
-	"fleet-dash-core/service"
 	"fleet-dash-core/utilities"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/transport"
 	gt "github.com/go-kit/kit/transport/grpc"
 	"google.golang.org/grpc/metadata"
-	"net/http"
 	"strings"
 )
 
 type gRPCServer struct {
+	pb.UnimplementedFleetDashServiceServer
+
 	postEveLogEventBatch gt.Handler
 }
 
@@ -35,7 +35,6 @@ func NewGRPCServer(endpoints endpoints.GrpcEndpoints, logger log.Logger, validat
 	}
 }
 
-
 func (s *gRPCServer) PostEveLogEventBatch(ctx context.Context, req *pb.EveLogEventBatch) (*pb.BatchedEveLogEventResponse, error) {
 	_, _, err := s.postEveLogEventBatch.ServeGRPC(ctx, req)
 	if err != nil {
@@ -49,7 +48,7 @@ func decodePostEveLogEventRequest(_ context.Context, grpcReq interface{}) (inter
 	return req, nil
 }
 
-func encodeEveLogEventResponse(_ context.Context, response interface{}) (interface{}, error) {
+func encodeEveLogEventResponse(_ context.Context, _ interface{}) (interface{}, error) {
 	return &pb.BatchedEveLogEventResponse{}, nil
 }
 
@@ -95,25 +94,10 @@ func extractGrpcAuthentication(validator utilities.JwtValidator) func(context.Co
 	}
 }
 
-func errorHandler(ctx context.Context, header *metadata.MD, trailer *metadata.MD) context.Context{
-	return ctx
-}
-
 type grpcErrorHandler struct {
 	logger log.Logger
 }
 
-func (eh *grpcErrorHandler) Handle(ctx context.Context, err error) {
+func (eh *grpcErrorHandler) Handle(_ context.Context, _ error) {
 
-}
-
-func grpcCodeFrom(err error) int {
-	switch err {
-	case service.ErrSessionAlreadyRunning, service.ErrNotInFleet:
-		return http.StatusBadRequest
-	case endpoints.ErrNotAuthenticated:
-		return http.StatusUnauthorized
-	default:
-		return http.StatusInternalServerError
-	}
 }

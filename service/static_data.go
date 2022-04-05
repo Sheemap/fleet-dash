@@ -11,8 +11,9 @@ type staticDataService struct {
 }
 
 type StaticDataService interface {
-	GetStaticItem(id uint64) (*data.StaticItemInfo, error)
+	GetStaticItemByID(id uint64) (*data.StaticItemInfo, error)
 	GetStaticSolarSystem(id uint64) (*data.StaticSolarSystemInfo, error)
+	GetStaticItemByName(name string) (*data.StaticItemInfo, error)
 }
 
 func NewStaticDataService(repository data.Repository, logger log.Logger) StaticDataService {
@@ -22,8 +23,17 @@ func NewStaticDataService(repository data.Repository, logger log.Logger) StaticD
 	}
 }
 
-func (svc *staticDataService) GetStaticItem(id uint64) (*data.StaticItemInfo, error) {
-	item, err := svc.repo.GetStaticItemInfo(id)
+func (svc *staticDataService) GetStaticItemByID(id uint64) (*data.StaticItemInfo, error) {
+	item, err := svc.repo.GetStaticItemInfoByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
+}
+
+func (svc *staticDataService) GetStaticItemByName(name string) (*data.StaticItemInfo, error) {
+	item, err := svc.repo.GetStaticItemInfoByName(name)
 	if err != nil {
 		return nil, err
 	}

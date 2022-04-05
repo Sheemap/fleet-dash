@@ -26,7 +26,8 @@ type Repository interface {
 	GetEvents(since time.Time) (*[]Event, error)
 	GetStaleSessions() (*[]string, error)
 	GetRecentEndedSessions() (*[]string, error)
-	GetStaticItemInfo(id uint64) (*StaticItemInfo, error)
+	GetStaticItemInfoByID(id uint64) (*StaticItemInfo, error)
+	GetStaticItemInfoByName(name string) (*StaticItemInfo, error)
 	GetStaticSolarSystemInfo(id uint64) (*StaticSolarSystemInfo, error)
 }
 
@@ -194,11 +195,21 @@ func (r *repository) GetEvents(since time.Time) (*[]Event, error) {
 	return events, err
 }
 
-func (r *repository) GetStaticItemInfo(id uint64) (*StaticItemInfo, error) {
+func (r *repository) GetStaticItemInfoByID(id uint64) (*StaticItemInfo, error) {
 	var staticItemInfo StaticItemInfo
 	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
 		func(tx *gorm.DB) error {
 			return r.db.First(&staticItemInfo, id).Error
+		},
+	)
+	return &staticItemInfo, err
+}
+
+func (r *repository) GetStaticItemInfoByName(name string) (*StaticItemInfo, error) {
+	var staticItemInfo StaticItemInfo
+	err := crdbgorm.ExecuteTx(context.Background(), r.db, nil,
+		func(tx *gorm.DB) error {
+			return r.db.Where("name = ?", name).First(&staticItemInfo).Error
 		},
 	)
 	return &staticItemInfo, err

@@ -2,20 +2,22 @@ package service
 
 import (
 	"fleet-dash-core/data"
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/websocket"
 	"time"
 )
 
 type stream struct {
 	sessionID string
-	conn *websocket.Conn
+	conn      *websocket.Conn
 }
 
-type eventStreamService struct{
-	repo data.Repository
-	streams []stream
+type eventStreamService struct {
+	logger   log.Logger
+	repo     data.Repository
+	streams  []stream
 	register chan stream
-	events chan *[]data.Event
+	events   chan *[]data.Event
 }
 
 type EventStreamService interface {
@@ -24,12 +26,13 @@ type EventStreamService interface {
 	RegisterStream(sessionID string, conn *websocket.Conn) error
 }
 
-func NewEventStreamService(r data.Repository) EventStreamService {
+func NewEventStreamService(r data.Repository, l log.Logger) EventStreamService {
 	svc := &eventStreamService{
-		repo: r,
-		streams: make([]stream, 0),
+		logger:   l,
+		repo:     r,
+		streams:  make([]stream, 0),
 		register: make(chan stream),
-		events: make(chan *[]data.Event, 100),
+		events:   make(chan *[]data.Event, 100),
 	}
 
 	go svc.startDBPoll()
@@ -38,7 +41,7 @@ func NewEventStreamService(r data.Repository) EventStreamService {
 	return svc
 }
 
-func (e *eventStreamService)GenerateEventStreamTicket(sessionId string) (*string, error){
+func (e *eventStreamService) GenerateEventStreamTicket(sessionId string) (*string, error) {
 	ticket, err := e.repo.GenerateEventStreamTicket(sessionId)
 	if err != nil {
 		return nil, err
@@ -47,7 +50,7 @@ func (e *eventStreamService)GenerateEventStreamTicket(sessionId string) (*string
 	return &ticket.ID, nil
 }
 
-func (e *eventStreamService) GetActiveTicket(ticket string) (*data.EventStreamTicket, error){
+func (e *eventStreamService) GetActiveTicket(ticket string) (*data.EventStreamTicket, error) {
 	activeTicket, err := e.repo.GetActiveTicket(ticket)
 	if err != nil {
 		return nil, err
@@ -56,7 +59,7 @@ func (e *eventStreamService) GetActiveTicket(ticket string) (*data.EventStreamTi
 	return activeTicket, nil
 }
 
-func (e *eventStreamService) RegisterStream(sessionID string, conn *websocket.Conn) error{
+func (e *eventStreamService) RegisterStream(sessionID string, conn *websocket.Conn) error {
 	e.register <- stream{sessionID, conn}
 	return nil
 }
@@ -89,8 +92,8 @@ func (e *eventStreamService) startStreams() {
 			// Remove errored streams from the slice
 			for j, i := range erroredIndexes {
 				// Slice is getting smaller, so we need to adjust the index
-				i = i-j
-				if i == len(erroredIndexes){
+				i = i - j
+				if i == len(erroredIndexes) {
 					e.streams = e.streams[:i]
 				} else {
 					e.streams = append(e.streams[:i], e.streams[i+1:]...)
@@ -101,9 +104,10 @@ func (e *eventStreamService) startStreams() {
 }
 
 var SessionClearInterval = time.Minute * 5
+
 func (e *eventStreamService) startDBPoll() {
 	lastPoll := time.Now()
-	lastSessionClear := time.Now()
+	lastSessionClear := time.Now().Add(-SessionClearInterval)
 	for {
 		tmpLastPoll := lastPoll
 		lastPoll = time.Now()
@@ -113,7 +117,6 @@ func (e *eventStreamService) startDBPoll() {
 		}
 
 		e.events <- events
-
 
 		if time.Now().Sub(lastSessionClear) > SessionClearInterval {
 			// Kick it off in a goroutine so we don't block the main loop

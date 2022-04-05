@@ -156,7 +156,7 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func codeFrom(err error) int {
 	switch err {
-	case service.ErrSessionAlreadyRunning, service.ErrNotInSession, service.ErrNotInFleet, endpoints.ErrIdIsRequired, endpoints.ErrInvalidId:
+	case service.ErrSessionAlreadyRunning, service.ErrNotInSession, service.ErrNotInFleet, endpoints.ErrIdOrNameRequired, endpoints.ErrInvalidId:
 		return http.StatusBadRequest
 	case endpoints.ErrNotAuthenticated:
 		return http.StatusUnauthorized

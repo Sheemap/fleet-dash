@@ -16,7 +16,7 @@ import (
 
 var (
 	ErrNotAuthenticated = errors.New("not authenticated")
-	ErrIdIsRequired     = errors.New("id is required in query string")
+	ErrIdOrNameRequired = errors.New("id or name is required in query string")
 	ErrInvalidId        = errors.New("invalid id")
 )
 
@@ -88,18 +88,24 @@ func makeStaticItemInfoEndpoint(s service.StaticDataService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(url.Values)
 
-		if !req.Has("id") {
-			return nil, ErrIdIsRequired
+		if req.Has("id") {
+			id := req.Get("id")
+
+			idInt, err := strconv.ParseUint(id, 10, 64)
+			if err != nil {
+				return nil, ErrInvalidId
+			}
+
+			return s.GetStaticItemByID(idInt)
 		}
 
-		id := req.Get("id")
+		if req.Has("name") {
+			name := req.Get("name")
 
-		idInt, err := strconv.ParseUint(id, 10, 64)
-		if err != nil {
-			return nil, ErrInvalidId
+			return s.GetStaticItemByName(name)
 		}
 
-		return s.GetStaticItem(idInt)
+		return nil, ErrIdOrNameRequired
 	}
 }
 
@@ -108,7 +114,7 @@ func makeStaticSolarSystemInfoEndpoint(s service.StaticDataService) endpoint.End
 		req := request.(url.Values)
 
 		if !req.Has("id") {
-			return nil, ErrIdIsRequired
+			return nil, ErrIdOrNameRequired
 		}
 
 		id := req.Get("id")

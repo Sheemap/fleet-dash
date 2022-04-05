@@ -24,17 +24,18 @@ type Session struct {
 type Event struct {
 	BaseModel
 
-	SessionID   string
-	Type        string
-	Timestamp   time.Time
-	CharacterID string
-	Amount      int32
-	Pilot       string
-	Ship        string
-	Weapon      string
-	Application string
-	Corporation string
-	Alliance    string
+	SessionID           string
+	Type                string
+	Timestamp           time.Time
+	CharacterID         string
+	CharacterShipTypeID int32
+	Amount              int32
+	Pilot               string
+	Ship                string
+	Weapon              string
+	Application         string
+	Corporation         string
+	Alliance            string
 }
 
 type EventStreamTicket struct {
@@ -44,8 +45,8 @@ type EventStreamTicket struct {
 }
 
 type StaticItemInfo struct {
-	ID   uint `gorm:"primarykey"`
-	Name string
+	ID   uint   `gorm:"primarykey"`
+	Name string `gorm:"index"`
 }
 
 type StaticSolarSystemInfo struct {
