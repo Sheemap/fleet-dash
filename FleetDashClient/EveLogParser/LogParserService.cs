@@ -189,6 +189,7 @@ public class LogParserService : ILogParserService, IDisposable
 
         foreach (var line in lines)
             CallUntilTrueReturned(e.CharacterId, line,
+                BlockNoParse,
                 FindAndRaiseIncomingDamage,
                 FindAndRaiseOutgoingDamage,
                 FindAndRaiseIncomingShield,
@@ -487,5 +488,11 @@ public class LogParserService : ILogParserService, IDisposable
 
         return FindAndRaiseEvent(OnOutgoingJam, EnglishRegex.OutgoingJam,
             argsBuilder, characterId, logLine);
+    }
+    
+    private static bool BlockNoParse(string characterId, string logLine)
+    {
+        var regex = new Regex(EnglishRegex.NoParse);
+        return regex.IsMatch(logLine);
     }
 }

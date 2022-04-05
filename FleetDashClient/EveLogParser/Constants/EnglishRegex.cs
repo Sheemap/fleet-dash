@@ -13,7 +13,10 @@ public static class EnglishRegex
     // Then we sort the matches according to the shipLabelOrder, look for missing values, and do our best to place things in the right spot
     // This will be the most robust way that works across essentially any overview settings
     public const string ShipLabelGroups =
-        @"(.*?[^(A-Z|a-z|0-9|\-|'| |<|\])](?<ShipLabel>[A-Z|a-z|0-9|\-|'| ]+)[^(A-Z|a-z|0-9|\-|'| |>|[)].*?)*";
+        @"(.*?[^(A-Z|a-z|0-9|\-|'| |<|\])]+(?<ShipLabel>[A-Z|a-z|0-9|\-|'| ]{3,37})[^(A-Z|a-z|0-9|\-|'| |>|[)]+.*?)*";
+
+    // This regex matches any log entries we dont want to parse, which helps us decrease the amount of logs to parse, and increase performance
+    public const string NoParse = @"((?:\(mining\))|(?:\(notify\)))|(?:Warp ((?:disruption)|(?:scramble)) attempt)";
 
     public const string IncomingDamage = @"\(combat\).*?<b>(?<Amount>[0-9]+).*?from";
     public const string OutgoingDamage = @"\(combat\).*?<b>(?<Amount>[0-9]+).*?to";
@@ -36,5 +39,6 @@ public static class EnglishRegex
     public const string OutgoingNos = @"\(combat\).*?<b>\+(?<Amount>[0-9]+).*?energy drained from";
 
     public const string IncomingJam = @"\(combat\).*?You're.*?jammed.*?by";
-    public const string OutgoingJam = @$"\(combat\){ShipLabelGroups}jammed";
+
+    public const string OutgoingJam = @"\(combat\).*?(.*?[^(A-Z|a-z|0-9|\-|'| |<|\])]+(?<ShipLabel>[A-Z|a-z|0-9|\-|'| ]{3,37})[^(A-Z|a-z|0-9|\-|'| |>|[)]+)+.* - jammed.* - (?<ShipLabel>[A-Z|a-z|0-9|\-|'| ]+)<";
 }
