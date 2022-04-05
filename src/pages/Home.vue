@@ -20,9 +20,8 @@ const emitter = inject("emitter");
     <TheNavBar />
     <div v-if="eventStore.active">
 
-      <div class="p-3">
 
-        <div class="grid  gap-3 grid-cols-1 grid-rows-auto md:grid-cols-4 md:grid-rows-3">
+        <div class="grid gap-3 grid-cols-1 grid-rows-auto md:grid-cols-4 md:grid-rows-dash md:w-full md:p-3">
           <AvgAmountOverTimeCounter title="Incoming DPS" event-type="IncomingDamageEvent" :period-seconds=15 />
           <AvgAmountOverTimeCounter title="Outgoing DPS" event-type="OutgoingDamageEvent" :period-seconds=15 />
           <div class="row-span-3">
@@ -43,7 +42,6 @@ const emitter = inject("emitter");
 
 
       </div>
-    </div>
 
     <TheEventStream />
     <TheFleetUpdater />
