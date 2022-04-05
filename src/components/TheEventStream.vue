@@ -71,7 +71,9 @@
             // If we have tried to reconnect too many times, we dont want to keep trying
             if(eventStore.stream_failure_count < 5)
             {
-              toast.warning("Connection closed, retrying. (" + eventStore.stream_failure_count + ")");
+              if (eventStore.stream_failure_count > 0){
+                toast.warning("Connection closed, retrying. Attempt: " + eventStore.stream_failure_count);
+              }
               // Try to reconnect with an exponential backoff
               setTimeout(tryStartStream, Math.pow(2, eventStore.stream_failure_count) * 1000, startSession);
             } else{
