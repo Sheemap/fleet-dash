@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {inject, reactive} from 'vue';
+import {computed, inject, reactive} from 'vue';
 import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue';
 import {useFleetStore} from "../js/fleetStore";
 import {useUserStore} from "../js/userStore";
@@ -8,12 +8,28 @@ interface JammedTarget {
   name: string
   shipId: number
   seconds: number
+  timestamp: number
+}
+
+interface JammedTargetKey {
+  name: string
+  timestamp: number
 }
 
 const fleetStore = useFleetStore();
 const userStore = useUserStore();
 
 let jams : JammedTarget[] = reactive([]);
+let uniqueJams = computed(() => {
+  let sortedJams = jams.sort((a, b) => (b.timestamp + b.seconds * 1000) - (a.timestamp + a.seconds * 1000));
+  // Get unique jams, ordered by timestamp, with respect to character ID
+  return sortedJams.reduce((uniqueJams, jam) => {
+    if (uniqueJams.length === 0 || uniqueJams[uniqueJams.length - 1].name !== jam.name) {
+      uniqueJams.push(jam);
+    }
+    return uniqueJams;
+  }, [] as JammedTarget[]);
+});
 
 function getSeconds(weapon: string) {
   let seconds: number;
@@ -27,28 +43,22 @@ function getSeconds(weapon: string) {
 
 const emitter = inject("emitter");
 emitter.on("OutgoingJamEvent", (evt) => {
-  let seconds = getSeconds(evt.Weapon);
-
   userStore.getActiveToken().then(token => {
     fleetStore.fetchItemId(evt.Ship, token).then(shipId => {
-      let item = {
+      let seconds = getSeconds(evt.Weapon);
+      jams.push({
         name: evt.Pilot,
         shipId: shipId,
-        seconds: seconds
-      };
-      let dupes = jams.filter(jam => jam.name === evt.Pilot);
-      if (dupes.length > 0) {
-        dupes.map(x => x.seconds = seconds);
-      }
-      else{
-        jams.push(item);
-      }
+        seconds: seconds,
+        timestamp: new Date(evt.Timestamp).getTime(),
+      });
     });
   });
 });
 
-function removeJam(pilot: string) {
-  jams.filter(x => x.name === pilot).forEach(jam => {
+function removeJam(key: JammedTargetKey) {
+  jams.filter(x => x.name === key.name &&
+      x.timestamp === key.timestamp).forEach(jam => {
     jams.splice(jams.indexOf(jam), 1);
   });
 }
@@ -59,8 +69,15 @@ function removeJam(pilot: string) {
       <div class="text-2xl my-3">Outgoing Jams</div>
 
       <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
-      <div v-for="jammed in jams" class="py-1">
-        <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" :expiration-callback="removeJam" :item-key="jammed.name" />
+      <div v-for="jammed in uniqueJams" class="py-1">
+        <PlayerShipCardProgressCountdown
+            :key="jammed.name + jammed.timestamp"
+            :player-name="jammed.name"
+            :ship-id="jammed.shipId"
+            :seconds="jammed.seconds"
+            :timestamp="jammed.timestamp"
+            :expiration-callback="removeJam"
+            :item-key="{ name: jammed.name, timestamp: jammed.timestamp }" />
       </div>
   </div>
 </template>

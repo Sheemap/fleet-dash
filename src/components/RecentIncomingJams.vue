@@ -1,17 +1,34 @@
 <script setup lang="ts">
-import {inject, reactive} from 'vue';
+import {computed, inject, reactive} from 'vue';
 import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue';
 import {useUserStore} from "../js/userStore";
+
 interface JammedTarget {
   name: string
   characterId: number
   shipId: number
   seconds: number
+  timestamp: number
+}
+
+interface JammedTargetKey {
+  characterId: number
+  timestamp: number
 }
 
 const userStore = useUserStore();
 
 let jams : JammedTarget[] = reactive([]);
+let uniqueJams = computed(() => {
+  let sortedJams = jams.sort((a, b) => (b.timestamp + b.seconds * 1000) - (a.timestamp + a.seconds * 1000));
+  // Get unique jams, ordered by timestamp, with respect to character ID
+  return sortedJams.reduce((uniqueJams, jam) => {
+    if (uniqueJams.length === 0 || uniqueJams[uniqueJams.length - 1].characterId !== jam.characterId) {
+      uniqueJams.push(jam);
+    }
+    return uniqueJams;
+  }, [] as JammedTarget[]);
+});
 
 function getSeconds(weapon: string) {
   let seconds: number;
@@ -26,24 +43,18 @@ function getSeconds(weapon: string) {
 const emitter = inject("emitter");
 emitter.on("IncomingJamEvent", (evt) => {
   let seconds = getSeconds(evt.Weapon);
-
-  let item = {
+  jams.push({
     name: "",
     characterId: evt.CharacterID,
     shipId: evt.CharacterShipTypeID,
-    seconds: seconds
-  };
-  let dupes = jams.filter(jam => jam.characterId === evt.CharacterID);
-  if (dupes.length > 0) {
-    dupes.map(x => x.seconds = seconds);
-  }
-  else{
-    jams.push(item);
-  }
+    seconds: seconds,
+    timestamp: new Date(evt.Timestamp).getTime(),
+  });
 });
 
-function removeJam(characterId: number) {
-  jams.filter(x => x.characterId === characterId).forEach(jam => {
+function removeJam(key: JammedTargetKey) {
+  jams.filter(x => x.characterId === key.characterId &&
+      x.timestamp === key.timestamp).forEach(jam => {
     jams.splice(jams.indexOf(jam), 1);
   });
 }
@@ -54,8 +65,14 @@ function removeJam(characterId: number) {
     <div class="text-2xl my-3">Incoming Jams</div>
 
     <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
-    <div v-for="jammed in jams" class="py-1">
-      <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" :expiration-callback="removeJam" :item-key="jammed.characterId" />
+    <div v-for="jammed in uniqueJams" class="py-1">
+      <PlayerShipCardProgressCountdown :key="jammed.characterId+jammed.timestamp"
+                                       :player-name="jammed.name"
+                                       :ship-id="jammed.shipId"
+                                       :seconds="jammed.seconds"
+                                       :timestamp="jammed.timestamp"
+                                       :expiration-callback="removeJam"
+                                       :item-key="{ characterId: jammed.characterId, timestamp: jammed.timestamp }" />
     </div>
 
   </div>

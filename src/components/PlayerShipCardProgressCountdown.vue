@@ -6,6 +6,7 @@ const props = defineProps<{
     shipId: number;
     playerName: string;
     seconds: number;
+    timestamp: number;
     itemKey: any;
     expirationCallback: (key: any) => void;
 }>();
@@ -13,19 +14,22 @@ const props = defineProps<{
 let curSecond = ref(props.seconds);
 let progPercent = ref(100);
 
-function updateProgress(totalMili){
-    curSecond.value = props.seconds - Math.floor(totalMili / 1000);
-    progPercent.value = Math.ceil(curSecond.value / props.seconds * 100);
+let endTime = props.timestamp + props.seconds * 1000;
+
+function updateProgress(){
+    const now = Date.now();
+    curSecond.value = Math.floor((endTime - now) / 1000);
+    progPercent.value = Math.ceil( curSecond.value / props.seconds * 100);
 
     if (progPercent.value > 0){
-        setTimeout(updateProgress, 1000, totalMili + 1000)
+        setTimeout(updateProgress, 1000)
     }
     else{
         props.expirationCallback(props.itemKey);
     }
 }
 
-updateProgress(0);
+updateProgress();
 </script>
 
 <template>
