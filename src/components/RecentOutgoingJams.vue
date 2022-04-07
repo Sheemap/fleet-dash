@@ -36,15 +36,22 @@ emitter.on("OutgoingJamEvent", (evt) => {
         shipId: shipId,
         seconds: seconds
       };
-      jams.push(item);
-
-      setTimeout(() => {
-        jams.splice(jams.indexOf(item), 1);
-      }, item.seconds * 1000);
+      let dupes = jams.filter(jam => jam.name === evt.Pilot);
+      if (dupes.length > 0) {
+        dupes.map(x => x.seconds = seconds);
+      }
+      else{
+        jams.push(item);
+      }
     });
   });
 });
 
+function removeJam(pilot: string) {
+  jams.filter(x => x.name === pilot).forEach(jam => {
+    jams.splice(jams.indexOf(jam), 1);
+  });
+}
 </script>
 
 <template>
@@ -53,7 +60,7 @@ emitter.on("OutgoingJamEvent", (evt) => {
 
       <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
       <div v-for="jammed in jams" class="py-1">
-        <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" />
+        <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" :expiration-callback="removeJam" :item-key="jammed.name" />
       </div>
   </div>
 </template>

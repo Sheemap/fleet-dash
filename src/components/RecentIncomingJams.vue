@@ -4,6 +4,7 @@ import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.v
 import {useUserStore} from "../js/userStore";
 interface JammedTarget {
   name: string
+  characterId: number
   shipId: number
   seconds: number
 }
@@ -28,15 +29,24 @@ emitter.on("IncomingJamEvent", (evt) => {
 
   let item = {
     name: "",
+    characterId: evt.CharacterID,
     shipId: evt.CharacterShipTypeID,
     seconds: seconds
   };
-  jams.push(item);
-
-  setTimeout(() => {
-    jams.splice(jams.indexOf(item), 1);
-  }, item.seconds * 1000);
+  let dupes = jams.filter(jam => jam.characterId === evt.CharacterID);
+  if (dupes.length > 0) {
+    dupes.map(x => x.seconds = seconds);
+  }
+  else{
+    jams.push(item);
+  }
 });
+
+function removeJam(characterId: number) {
+  jams.filter(x => x.characterId === characterId).forEach(jam => {
+    jams.splice(jams.indexOf(jam), 1);
+  });
+}
 </script>
 
 <template>
@@ -45,7 +55,7 @@ emitter.on("IncomingJamEvent", (evt) => {
 
     <div v-if="jams.length === 0" class="py-5 text-zinc-400 italic">No one currently jammed</div>
     <div v-for="jammed in jams" class="py-1">
-      <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" />
+      <PlayerShipCardProgressCountdown :player-name="jammed.name" :ship-id="jammed.shipId" :seconds="jammed.seconds" :expiration-callback="removeJam" :item-key="jammed.characterId" />
     </div>
 
   </div>
