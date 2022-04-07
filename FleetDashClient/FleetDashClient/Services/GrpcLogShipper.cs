@@ -24,6 +24,8 @@ public class GrpcLogShipper : IDisposable
     private readonly ConcurrentDictionary<string, DateTimeOffset> _lastBackOff = new();
     private readonly BlockingCollection<EveLogEvent> _eventQueue = new();
 
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+
     public GrpcLogShipper(
         ILogParserService logParserService,
         FleetDashService.FleetDashServiceClient client,
@@ -71,7 +73,7 @@ public class GrpcLogShipper : IDisposable
         }
 
         // refresh token
-        var newToken = await TokenService.RefreshToken(token);
+        var newToken = await TokenService.RefreshToken(_semaphore, token);
         newToken.CharacterId = characterId;
         dbContext.Tokens.Add(newToken);
         await dbContext.SaveChangesAsync();
@@ -83,6 +85,8 @@ public class GrpcLogShipper : IDisposable
     {
         Task.Run(async () =>
         {
+            Log.Debug("Preparing to ship {EventType} event", args.GetType());
+            
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
             
@@ -116,7 +120,7 @@ public class GrpcLogShipper : IDisposable
             if (_fleetData.Item2 < DateTimeOffset.Now.AddSeconds(-60))
             {
                 var fleetId =
-                    await EveClient.GetCharacterFleetIdAsync(freshToken.CharacterId, freshToken.AccessToken);
+                    await EveClient.GetCharacterFleetIdAsync(_semaphore, freshToken.CharacterId, freshToken.AccessToken);
                 _fleetData = (fleetId, DateTimeOffset.Now);
             }
 
@@ -126,7 +130,7 @@ public class GrpcLogShipper : IDisposable
                 return;
             }
 
-            var shipTypeId = await EveClient.GetCharacterShipTypeId(freshToken.CharacterId, freshToken.AccessToken);
+            var shipTypeId = await EveClient.GetCharacterShipTypeId(_semaphore, freshToken.CharacterId, freshToken.AccessToken);
 
             var eventType = args.GetType().ToString().Split('.').Last();
             var eveEvent = new EveLogEvent
@@ -170,6 +174,7 @@ public class GrpcLogShipper : IDisposable
                     continue;
                 }
 
+                Log.Debug("Processing event batch. Contains {EventCount} events", batch.Count);
                 var grouped = batch
                     .GroupBy(x => x.CharacterId)
                     .ToList();
@@ -179,6 +184,7 @@ public class GrpcLogShipper : IDisposable
                     if (_lastBackOff.TryGetValue(batched.Key, out var lastBackoff) &&
                         lastBackoff > DateTimeOffset.Now.AddSeconds(-30))
                     {
+                        Log.Debug("We are still backed off. Dropped {EventCount} events", batched.Count());
                         return;
                     }
 
@@ -201,6 +207,7 @@ public class GrpcLogShipper : IDisposable
                         {
                             Events = { batched }
                         };
+                        Log.Debug("Shipping {EventCount} events", batched.Count());
                         await _client.PostEveLogEventBatchAsync(batchedRequest, meta);
                     }
                     catch (RpcException ex)
@@ -212,7 +219,7 @@ public class GrpcLogShipper : IDisposable
                         }
                         else
                         {
-                            Log.Warning(ex, "Failed to send log event batch to server. Events missed: {BatchCount}",
+                            Log.Warning(ex, "Failed to send log event batch to server. Events missed: {EventCount}",
                                 batched.Count());
                         }
                     }

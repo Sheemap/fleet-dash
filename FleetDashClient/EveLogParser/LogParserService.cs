@@ -181,11 +181,17 @@ public class LogParserService : ILogParserService, IDisposable
     private void HandleLogFileRead(object? source, LogFileReadEventArgs e)
     {
         Log.Debug("Processing log entry");
-        if (!_watchedCharacters.Contains(e.CharacterId)) return;
+        if (!_watchedCharacters.Contains(e.CharacterId))
+        {
+            Log.Debug("No character matched for log, not parsing.");
+            return;
+        }
 
         var lines = Encoding.UTF8.GetString(e.Content)
             .Split(new[] {"\r\n", "\r", "\n"}, StringSplitOptions.None)
             .ToList();
+        
+        Log.Debug("Processing {LineCount} log lines.", lines.Count);
 
         foreach (var line in lines)
             CallUntilTrueReturned(e.CharacterId, line,
@@ -206,6 +212,8 @@ public class LogParserService : ILogParserService, IDisposable
                 FindAndRaiseOutgoingHull,
                 FindAndRaiseIncomingJam,
                 FindAndRaiseOutgoingJam);
+        
+        Log.Debug("Finished processing log entry");
     }
 
     /// <summary>

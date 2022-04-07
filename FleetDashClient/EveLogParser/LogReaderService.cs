@@ -1,7 +1,7 @@
-﻿using System.Runtime.Serialization;
-using EveLogParser.Builder;
+﻿using EveLogParser.Builder;
 using EveLogParser.Models.Events;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace EveLogParser;
 
@@ -22,6 +22,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
 
     private void ReloadConfig(EveLogParserOptions options)
     {
+        Log.Debug("Reloading log reader config");
         // Log directory needs to have changed to proceed
         if (options.LogDirectory == _logDirectory) return;
 
@@ -30,6 +31,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
         // Only restart if currently running
         if (_cancellationTokenSource == null) return;
         
+        Log.Information("Restarting log reader");
         Stop();
         Start();
     }
@@ -45,6 +47,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
 
         return Task.Run(() =>
         {
+            Log.Debug("Starting log watcher in directory {LogDirectory}", _logDirectory);
             using var watcher = new FileSystemWatcher(_logDirectory);
 
             watcher.NotifyFilter = NotifyFilters.LastWrite;
@@ -58,6 +61,8 @@ internal class LogReaderService : ILogReaderService, IDisposable
             {
                 Thread.Sleep(1000);
             }
+            
+            Log.Information("Log reader shutting down.");
         });
     }
 
@@ -71,20 +76,24 @@ internal class LogReaderService : ILogReaderService, IDisposable
 
     private string? GetCharacterId(string logFilePath)
     {
+        Log.Debug("Getting character ID for path {FullPath}", logFilePath);
         string? charId;
 
         var cached = _characterLogMap.ContainsKey(logFilePath);
         if (!cached)
         {
+            Log.Debug("Cache miss, parsing file");
             var logFileName = new FileInfo(logFilePath).Name;
 
             var fileNameParts = logFileName.Split('_');
             charId = fileNameParts.Length == 3 ? fileNameParts[2].Replace(".txt", "") : null;
             _characterLogMap.Add(logFilePath, charId);
+            Log.Debug("Character ID {CharacterID} cached", charId);
         }
         else
         {
             charId = _characterLogMap.GetValueOrDefault(logFilePath);
+            Log.Debug("Cache hit, character ID is {CharacterID}", charId);
         }
 
         return charId;
@@ -93,6 +102,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
         var raiseEvent = OnFileRead;
+        Log.Debug("Log read event fired.");
         if (raiseEvent == null) return;
 
         try
@@ -103,6 +113,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
 
             var position = _logProgress.GetValueOrDefault(e.FullPath, 0);
 
+            Log.Debug("Opening {FullPath} for reading at position {FilePosition}", e.FullPath, position);
             using var fileStream = File.OpenRead(e.FullPath);
 
             fileStream.Position = position;
@@ -115,6 +126,7 @@ internal class LogReaderService : ILogReaderService, IDisposable
 
             _logProgress[e.FullPath] = position + readCount;
 
+            Log.Debug("Read {Bytes} bytes, raising event.", readCount);
             var eventArgs = new LogFileReadEventArgs(charId, readBytes);
             raiseEvent(this, eventArgs);
         }
@@ -122,9 +134,9 @@ internal class LogReaderService : ILogReaderService, IDisposable
         {
             _logProgress[e.FullPath] = 0;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // ignored
+            Log.Error(ex, "Exception in log reader occured!");
         }
     }
 
