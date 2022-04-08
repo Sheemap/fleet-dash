@@ -2,11 +2,14 @@
 import { useUserStore } from "../js/userStore";
 import { useFleetStore } from "../js/fleetStore";
 import { useEventStore} from "../js/eventStore";
+import useToast from "../js/toast";
 import {ref} from "vue";
 
 const userStore = useUserStore();
 const fleetStore = useFleetStore();
 const eventStore = useEventStore();
+
+const toast = useToast();
 
 let running = ref(false);
 let errored = ref(false);
@@ -29,7 +32,18 @@ async function updateFleet() {
   running.value = true;
   try{
     let token = await userStore.getActiveToken();
-    await fleetStore.fetchFleet(userStore.character_id, token);
+    let fleet = await fleetStore.fetchFleet(userStore.character_id, token);
+
+    // If fleet differs from stored fleet, shutdown session
+    // This will trigger a new session to be joined (if it exists)
+    if (fleet.fleet_id !== eventStore.session_fleet_id){
+      eventStore.shutdownLocalStream();
+      toast.info("Fleet has changed, rejoin session to continue.", {
+        duration: 10000
+      });
+      lock.value = false;
+      return;
+    }
 
     // Can only fetch members if we are a fleet commander
     if(nextTryFetchMember.value < Date.now()) {
@@ -43,7 +57,12 @@ async function updateFleet() {
       }
     }
   } catch (e) {
-    // Ignore, likely because we are not in a fleet
+    if (e === "Character is not in a fleet"){
+      eventStore.shutdownLocalStream();
+      toast.info("Fleet has changed, rejoin session to continue.", {
+        duration: 10000
+      });
+    }
   }
 
   lock.value = false;

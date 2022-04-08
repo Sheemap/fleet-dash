@@ -36,9 +36,10 @@ const emitter = inject("emitter");
           <LogiDpsSlider :period-seconds="15" />
 
         </div>
-      </div>
+
+      <TheFleetUpdater />
+    </div>
 
     <TheEventStream />
-    <TheFleetUpdater />
   </div>
 </template>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
   import { inject, ref } from "vue";
   import { useUserStore } from "../js/userStore";
   import { useEventStore } from "../js/eventStore";
@@ -26,16 +26,23 @@
           console.log('Connection has been established.');
           eventStore.active = true;
 
-          function timeoutFunc() {
+          let pingInterval = setInterval(pingFunc, 5000);
+
+          function pingFunc() {
             if(ws.readyState !== WebSocket.OPEN) {
               return;
             }
+            if (!eventStore.active) {
+              starting.value = false;
+              ws.close(1000, 'Event stream closed');
+              clearInterval(pingInterval);
+              return;
+            }
+
             ws.send(JSON.stringify({
               type: 'ping'
             }));
           }
-
-          setInterval(timeoutFunc, 5000);
         });
 
         ws.addEventListener('message', function incoming(data) {
@@ -64,10 +71,9 @@
           // else its a permanent error
           if(event.reason !== "" && event.reason !== "invalid ticket"){
             toast.error('Connection closed: ' + event.reason);
-            eventStore.active = false;
-            eventStore.resetTicket();
+            eventStore.shutdownLocalStream();
             starting.value = false;
-          } else{
+          } else if (!event.wasClean) {
             // If we have tried to reconnect too many times, we dont want to keep trying
             if(eventStore.stream_failure_count < 5)
             {
@@ -77,7 +83,9 @@
               // Try to reconnect with an exponential backoff
               setTimeout(tryStartStream, Math.pow(2, eventStore.stream_failure_count) * 1000, startSession);
             } else{
-              toast.error('We have tried to reconnect too many times. Please refresh the page to try again.');
+              toast.error('We have tried to reconnect too many times. Please refresh the page to try again.', {
+                duration: 0
+              });
               eventStore.active = false;
               eventStore.resetTicket();
               starting.value = false;
@@ -95,7 +103,16 @@
                 .then(() => {
                   tryStartStream();
                 });
-          }else{
+          } else if (startSession) {
+            if (err == "not in fleet"){
+              toast.error("You are not in a fleet!\nFleets are refreshed every 60 seconds. Give it some time if you believe this is a mistake.", {
+                duration: 15000
+              });
+            } else {
+              toast.error("Could not start stream: " + err);
+            }
+            starting.value = false;
+          } else{
             starting.value = false;
           }
         });
