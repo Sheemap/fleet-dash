@@ -34,7 +34,8 @@ type SessionStartResponse struct {
 }
 
 type GenerateTicketResponse struct {
-	Ticket string `json:"ticket"`
+	Ticket  string `json:"ticket"`
+	FleetID int64  `json:"fleetId"`
 }
 
 type NoContentResponse struct{}
@@ -75,7 +76,7 @@ func MakeHttpEndpoints(l log.Logger, s service.SessionService, es service.EventS
 func loggingMiddleware(next endpoint.Endpoint, l log.Logger, method string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		defer func(begin time.Time) {
-			l.Log(
+			_ = l.Log(
 				"endpoint", method,
 				"took", time.Since(begin),
 			)
@@ -135,21 +136,27 @@ func makeEventStreamTicketEndpoint(s service.SessionService, es service.EventStr
 			return nil, err
 		}
 
-		sessionId, err := s.GetCharacterActiveSession(character.AccessToken)
+		session, err := s.GetCharacterActiveSession(character.AccessToken)
 		if err != nil {
 			return nil, err
 		}
-		if sessionId == nil {
+		if session == nil {
 			return nil, service.ErrNotInSession
 		}
 
-		ticket, err := es.GenerateEventStreamTicket(*sessionId)
+		ticket, err := es.GenerateEventStreamTicket(session.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		fleetID, err := strconv.ParseInt(session.FleetID, 10, 64)
 		if err != nil {
 			return nil, err
 		}
 
 		return &GenerateTicketResponse{
-			Ticket: *ticket,
+			Ticket:  *ticket,
+			FleetID: fleetID,
 		}, nil
 	}
 }
@@ -182,7 +189,7 @@ func makeEventStream(es service.EventStreamService) func(w http.ResponseWriter, 
 			return
 		}
 
-		err = es.RegisterStream(activeTicket.SessionID, conn)
+		err = es.RegisterStream(activeTicket, conn)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

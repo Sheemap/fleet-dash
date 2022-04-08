@@ -9,14 +9,14 @@ import (
 
 type stream struct {
 	sessionID string
+	ticketID  string
 	conn      *websocket.Conn
 }
 
 type eventStreamService struct {
 	logger          log.Logger
 	repo            data.Repository
-	streams         []stream
-	register        chan stream
+	streamMap       map[string]map[string]*stream
 	events          chan *[]data.Event
 	fetchedDbEvents map[string]time.Time
 }
@@ -24,21 +24,20 @@ type eventStreamService struct {
 type EventStreamService interface {
 	GenerateEventStreamTicket(sessionId string) (*string, error)
 	GetActiveTicket(ticket string) (*data.EventStreamTicket, error)
-	RegisterStream(sessionID string, conn *websocket.Conn) error
+	RegisterStream(activeTicket *data.EventStreamTicket, conn *websocket.Conn) error
 }
 
 func NewEventStreamService(r data.Repository, l log.Logger) EventStreamService {
 	svc := &eventStreamService{
 		logger:          l,
 		repo:            r,
-		streams:         make([]stream, 0),
-		register:        make(chan stream),
+		streamMap:       make(map[string]map[string]*stream),
 		events:          make(chan *[]data.Event, 100),
 		fetchedDbEvents: make(map[string]time.Time),
 	}
 
 	go svc.startDBPoll()
-	go svc.startStreams()
+	go svc.startEventStream()
 
 	return svc
 }
@@ -61,47 +60,61 @@ func (e *eventStreamService) GetActiveTicket(ticket string) (*data.EventStreamTi
 	return activeTicket, nil
 }
 
-func (e *eventStreamService) RegisterStream(sessionID string, conn *websocket.Conn) error {
-	e.register <- stream{sessionID, conn}
+func (e *eventStreamService) RegisterStream(ticket *data.EventStreamTicket, conn *websocket.Conn) error {
+	// If streamMap doesn't have the sessionId, create a new map
+	if _, ok := e.streamMap[ticket.SessionID]; !ok {
+		e.streamMap[ticket.SessionID] = make(map[string]*stream)
+	}
+	e.streamMap[ticket.SessionID][ticket.ID] = &stream{
+		sessionID: ticket.SessionID,
+		ticketID:  ticket.ID,
+		conn:      conn,
+	}
+
+	// We don't receive close events unless we actively listen for them
+	go func(sessionId string, ticketId string, c *websocket.Conn) {
+		for {
+			if _, _, err := c.NextReader(); err != nil {
+				// Remove their conn from the map
+				delete(e.streamMap[sessionId], ticketId)
+				if len(e.streamMap[sessionId]) == 0 {
+					delete(e.streamMap, sessionId)
+				}
+				_ = c.Close()
+				break
+			}
+		}
+	}(ticket.SessionID, ticket.ID, conn)
 	return nil
 }
 
-func (e *eventStreamService) startStreams() {
+func (e *eventStreamService) startEventStream() {
 	for {
-		select {
-		case s := <-e.register:
-			e.streams = append(e.streams, s)
-		case events := <-e.events:
-			if len(*events) == 0 || len(e.streams) == 0 {
+		events := <-e.events
+		if len(*events) == 0 || len(e.streamMap) == 0 {
+			continue
+		}
+
+		// Group events by session ID
+		eventsBySession := make(map[string][]data.Event)
+		for _, event := range *events {
+			eventsBySession[event.SessionID] = append(eventsBySession[event.SessionID], event)
+		}
+
+		// Send events to streams
+		for sessionId, streams := range e.streamMap {
+			if _, ok := eventsBySession[sessionId]; !ok {
 				continue
 			}
-			erroredIndexes := make([]int, 0)
-			for i, s := range e.streams {
-				// Filter all events to the stream's session
-				sessionEvents := make([]data.Event, 0)
-				for _, event := range *events {
-					if event.SessionID == s.sessionID {
-						sessionEvents = append(sessionEvents, event)
-					}
-				}
 
-				// If any events were filtered, send them to the stream
-				if len(sessionEvents) > 0 {
-					err := s.conn.WriteJSON(sessionEvents)
-					if err != nil {
-						erroredIndexes = append(erroredIndexes, i)
+			for _, stream := range streams {
+				err := stream.conn.WriteJSON(eventsBySession[sessionId])
+				if err != nil {
+					// Remove errored stream
+					delete(e.streamMap[sessionId], stream.ticketID)
+					if len(e.streamMap[sessionId]) == 0 {
+						delete(e.streamMap, sessionId)
 					}
-				}
-			}
-
-			// Remove errored streams from the slice
-			for j, i := range erroredIndexes {
-				// Slice is getting smaller, so we need to adjust the index
-				i = i - j
-				if i == len(erroredIndexes) {
-					e.streams = e.streams[:i]
-				} else {
-					e.streams = append(e.streams[:i], e.streams[i+1:]...)
 				}
 			}
 		}
@@ -177,18 +190,20 @@ func (e *eventStreamService) clearOldSessions() {
 	}
 
 	// Ensure ended sessions are not in the stream
-	// This has to be separate from above loop so a distributed architecture can be used
-	endedSessions, err := e.repo.GetRecentEndedSessions()
-	for _, sessionID := range *endedSessions {
-		for _, stream := range e.streams {
-			if stream.sessionID == sessionID {
-				err = stream.conn.WriteControl(websocket.CloseMessage, []byte("  session ended"), time.Now().Add(time.Second))
-				if err != nil {
-					continue
-				}
+	for _, sessionID := range *sessions {
+		// Notify streams of session end and remove from stream map
+		if _, ok := e.streamMap[sessionID]; ok {
+			var conns []*websocket.Conn
+			for _, stream := range e.streamMap[sessionID] {
+				_ = stream.conn.WriteControl(websocket.CloseMessage, []byte("  session ended"), time.Now().Add(time.Second))
+				conns = append(conns, stream.conn)
+			}
+			delete(e.streamMap, sessionID)
 
-				time.Sleep(time.Second)
-				_ = stream.conn.Close()
+			// Sleep one second to allow the close message to be sent
+			time.Sleep(time.Second)
+			for _, conn := range conns {
+				_ = conn.Close()
 			}
 		}
 	}

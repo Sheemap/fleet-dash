@@ -41,11 +41,11 @@ func makePostEveLogEventEndpoint(es service.EventIngestionService, ss service.Se
 
 		// We require an active session before ingesting any events
 		parsed := token.(*jwt.Token)
-		sessionId, err := ss.GetCharacterActiveSession(parsed)
+		session, err := ss.GetCharacterActiveSession(parsed)
 		if err != nil {
 			return nil, err
 		}
-		if sessionId == nil {
+		if session == nil {
 			return nil, service.ErrNotInSession
 		}
 
@@ -69,7 +69,7 @@ func makePostEveLogEventEndpoint(es service.EventIngestionService, ss service.Se
 			}
 		}
 
-		err = es.PersistEveLogEventBatch(*sessionId, eveLogEvents)
+		err = es.PersistEveLogEventBatch(session.ID, eveLogEvents)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func grpcLoggingMiddleware(next endpoint.Endpoint, l log.Logger) endpoint.Endpoi
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		method, _ := grpc.Method(ctx)
 		defer func(begin time.Time) {
-			l.Log(
+			_ = l.Log(
 				"endpoint", method,
 				"took", time.Since(begin),
 			)

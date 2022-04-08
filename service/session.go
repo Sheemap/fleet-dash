@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fleet-dash-core/data"
 	"fleet-dash-core/eveclient"
-	"fleet-dash-core/utilities"
 	"github.com/ReneKroon/ttlcache/v2"
 	"github.com/go-kit/kit/log"
 	"github.com/golang-jwt/jwt/v4"
@@ -14,21 +13,21 @@ import (
 )
 
 type sessionService struct {
-	repo data.Repository
+	repo       data.Repository
 	fleetCache *ttlcache.Cache
-	logger log.Logger
+	logger     log.Logger
 }
 
 var (
 	ErrSessionAlreadyRunning = errors.New("session already running")
-	ErrNotInFleet			= errors.New("not in fleet")
-	ErrNotInSession = errors.New("not in active session")
+	ErrNotInFleet            = errors.New("not in fleet")
+	ErrNotInSession          = errors.New("not in active session")
 )
 
 type SessionService interface {
 	StartSession(character Character) (string, error)
 	EndSession(c Character) error
-	GetCharacterActiveSession(token *jwt.Token) (*string, error)
+	GetCharacterActiveSession(token *jwt.Token) (*data.Session, error)
 }
 
 func NewSessionService(repository data.Repository, logger log.Logger) SessionService {
@@ -41,33 +40,25 @@ func NewSessionService(repository data.Repository, logger log.Logger) SessionSer
 	fleetCache.SkipTTLExtensionOnHit(true)
 
 	return &sessionService{
-		repo: repository,
+		repo:       repository,
 		fleetCache: fleetCache,
-		logger: logger,
+		logger:     logger,
 	}
 }
 
 func (s *sessionService) EndSession(c Character) error {
-	currentSessionID, err := s.GetCharacterActiveSession(c.AccessToken)
+	currentSession, err := s.GetCharacterActiveSession(c.AccessToken)
 	if err != nil {
 		return err
 	}
-	if currentSessionID == nil {
+	if currentSession == nil {
 		return ErrNotInSession
 	}
 
-	return s.repo.EndSession(*currentSessionID)
+	return s.repo.EndSession(currentSession.ID)
 }
 
 func (s *sessionService) StartSession(c Character) (string, error) {
-	currentSession, err := s.repo.GetCharacterActiveSession(c.ID)
-	if err != nil {
-		return "", err
-	}
-	if currentSession != nil {
-		return "", ErrSessionAlreadyRunning
-	}
-
 	fleetID, err := s.getCharacterFleet(c.AccessToken)
 	if err != nil {
 		return "", err
@@ -81,14 +72,13 @@ func (s *sessionService) StartSession(c Character) (string, error) {
 		return "", ErrSessionAlreadyRunning
 	}
 
-
 	newID := uuid.New().String()
 
 	newSession := &data.Session{
 		BaseModel: data.BaseModel{
-			ID:	newID,
+			ID: newID,
 		},
-		FleetID: *fleetID,
+		FleetID:     *fleetID,
 		CharacterID: c.ID,
 	}
 
@@ -97,20 +87,7 @@ func (s *sessionService) StartSession(c Character) (string, error) {
 	return newSession.ID, err
 }
 
-func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, error) {
-	charID, err := utilities.GetCharacterIDFromToken(token)
-	if err != nil {
-		return nil, err
-	}
-
-	session, err := s.repo.GetCharacterActiveSession(charID)
-	if err != nil {
-		return nil, err
-	}
-	if session != nil {
-		return &session.ID, nil
-	}
-
+func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*data.Session, error) {
 	fleetID, err := s.getCharacterFleet(token)
 	if err != nil {
 		return nil, err
@@ -127,7 +104,7 @@ func (s *sessionService) GetCharacterActiveSession(token *jwt.Token) (*string, e
 		return nil, ErrNotInSession
 	}
 
-	return &fleetSession.ID, nil
+	return fleetSession, nil
 }
 
 func (s *sessionService) getCharacterFleet(token *jwt.Token) (*string, error) {
