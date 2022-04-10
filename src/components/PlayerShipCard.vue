@@ -25,13 +25,13 @@ const imgUrl = `https://images.evetech.net/types/${props.shipId}/icon`
 
 <template>
     <div class="p-1 bg-slate-600 w-full rounded">
-        <div class="w-full lg:max-w-full lg:flex">
-            <div class="h-12 w-12" ><img :alt="shipName" class="rounded" :src="imgUrl" /></div>
-            <div class="px-3">
+        <div class="w-full max-w-full md:flex md:flex-wrap md:pb-1">
+            <div class="h-12 w-12 mr-1 lg:mr-3"><img :alt="shipName" class="rounded" :src="imgUrl" /></div>
+            <div class="">
                 <div>{{ playerName }}</div>
                 <div class="text-xs">{{ shipName }}</div>
             </div>
-            <div class="p-3 flex-grow text-xl text-right">{{ value }}</div>
+            <div class="px-2  text-xl flex-grow text-right">{{ value }}</div>
         </div>
         <slot></slot>
     </div>

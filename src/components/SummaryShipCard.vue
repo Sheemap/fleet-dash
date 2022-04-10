@@ -30,7 +30,7 @@ userStore.getActiveToken().then(token => {
 
 <template>
   <div class="max-w-full flex">
-      <div class="h-6 w-6" ><img alt="hello" class="rounded" :src="imgUrl" /></div>
+      <div class="h-6 w-6" ><img :alt="shipName" class="rounded" :src="imgUrl" /></div>
       <span class="px-3">
         <SummaryTextItem :count=count :text="shipName" />
       </span>
