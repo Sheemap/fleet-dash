@@ -222,5 +222,32 @@ export const useFleetStore = defineStore('fleet', {
                     });
             });
         },
+        fetchCharacterName(characterId: number) : Promise<string>{
+            console.log(characterId);
+            const cacheKey = 'character_name_'+ characterId.toString();
+            let cachedName = sessionStorage.getItem(cacheKey);
+
+            if  (cachedName) {
+                return Promise.resolve(cachedName);
+            }
+
+            return new Promise((resolve, reject) => {
+                fetch(`https://esi.evetech.net/latest/characters/${characterId}/`)
+                    .then(res => {
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.name && typeof data.name === 'string') {
+                            sessionStorage.setItem(cacheKey, data.name);
+                            resolve(data.name);
+                        } else {
+                            reject("Character name is empty.");
+                        }
+                    })
+                    .catch(err => {
+                        reject(err);
+                    });
+            });
+        }
     },
 });

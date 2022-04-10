@@ -2,6 +2,7 @@
 import {computed, inject, reactive} from 'vue';
 import PlayerShipCardProgressCountdown from './PlayerShipCardProgressCountdown.vue';
 import {useUserStore} from "../js/userStore";
+import {useFleetStore} from "../js/fleetStore";
 
 interface JammedTarget {
   name: string
@@ -17,6 +18,7 @@ interface JammedTargetKey {
 }
 
 const userStore = useUserStore();
+const fleetStore = useFleetStore();
 
 let jams : JammedTarget[] = reactive([]);
 let uniqueJams = computed(() => {
@@ -42,14 +44,16 @@ function getSeconds(weapon: string) {
 
 const emitter = inject("emitter");
 emitter.on("IncomingJamEvent", (evt) => {
-  let seconds = getSeconds(evt.Weapon);
-  jams.push({
-    name: "",
-    characterId: evt.CharacterID,
-    shipId: evt.CharacterShipTypeID,
-    seconds: seconds,
-    timestamp: new Date(evt.Timestamp).getTime(),
-  });
+    let seconds = getSeconds(evt.Weapon);
+    fleetStore.fetchCharacterName(evt.CharacterID).then((name) => {
+      jams.push({
+        name: name,
+        characterId: evt.CharacterID,
+        shipId: evt.CharacterShipTypeID,
+        seconds: seconds,
+        timestamp: new Date(evt.Timestamp).getTime(),
+      });
+    });
 });
 
 function removeJam(key: JammedTargetKey) {
