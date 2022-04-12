@@ -1,50 +1,23 @@
-﻿using System.Collections.Immutable;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using EveLogParser.Builder;
 using EveLogParser.Constants;
+using EveLogParser.Models;
 using EveLogParser.Models.Events;
-using Microsoft.Extensions.Options;
 using Serilog;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
 
 namespace EveLogParser;
 
 public class LogParserService : ILogParserService, IDisposable
 {
-    private readonly ImmutableList<string> _defaultShipLabelOrder = new List<string>
-    {
-        "pilot name",
-        "corporation",
-        "ship type",
-        "default"
-    }.ToImmutableList();
-
     private readonly ILogReaderService _logReaderService;
 
-    private readonly ImmutableList<string> _shipLabelPriority = new List<string>
-    {
-        "ship type",
-        "pilot name",
-        "ship name",
-        "default",
-        "corporation",
-        "alliance"
-    }.ToImmutableList();
+    private readonly List<WatchedCharacter> _watchedCharacters = new();
 
-    private readonly List<string> _watchedCharacters = new();
-    private ImmutableList<string> _shipLabelOrder;
-
-    public LogParserService(ILogReaderService logReaderService, IOptionsMonitor<EveLogParserOptions> options)
+    public LogParserService(ILogReaderService logReaderService)
     {
-        _shipLabelOrder = _defaultShipLabelOrder;
         _logReaderService = logReaderService;
         _logReaderService.OnFileRead += HandleLogFileRead;
-
-        UpdateShipOrder(options.CurrentValue);
-        options.OnChange(UpdateShipOrder);
     }
 
     public void Dispose()
@@ -79,109 +52,27 @@ public class LogParserService : ILogParserService, IDisposable
     public event EventHandler<IncomingJamEvent>? OnIncomingJam;
     public event EventHandler<OutgoingJamEvent>? OnOutgoingJam;
 
-    public void StartWatchingCharacter(string characterId)
+    public void StartWatchingCharacter(string characterId, string? overviewPath)
     {
-        _watchedCharacters.Add(characterId);
+        var a = new WatchedCharacter(characterId, overviewPath);
+        _watchedCharacters.Add(new WatchedCharacter(characterId, overviewPath));
     }
 
     public void StopWatchingCharacter(string characterId)
     {
-        _watchedCharacters.Remove(characterId);
+        var toRemove = _watchedCharacters.FirstOrDefault(x => x.CharacterId == characterId);
+        if (toRemove != null) _watchedCharacters.Remove(toRemove);
     }
 
-
-    private void UpdateShipOrder(EveLogParserOptions options)
+    private bool IsCharacterWatched(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(options.OverviewPath))
-        {
-            _shipLabelOrder = _defaultShipLabelOrder;
-            return;
-        }
-
-        using var reader = new StreamReader(options.OverviewPath);
-        var overviewYaml = reader.ReadToEnd();
-
-        var deserializer = new Deserializer();
-        var settings = deserializer.Deserialize<Dictionary<string, object>>(overviewYaml);
-
-        try
-        {
-            var shipLabelOrder = ExtractShipLabelSettings(settings)
-                .Select(x =>
-                    x.FirstOrDefault(y => y.Key == "type").Value ?? "default")
-                .OrderBy(x => x == "default")
-                .ToImmutableList();
-
-            _shipLabelOrder = shipLabelOrder;
-        }
-        catch (Exception ex)
-        {
-            throw new YamlException("Error parsing overview", ex);
-        }
-    }
-
-    // Parse the overview yaml, extract the objects into key value pairs
-    // Hard to keep a map in your mind of this, maybe its worth building a specific model?
-    private static IEnumerable<IEnumerable<KeyValuePair<string, string?>>> ExtractShipLabelSettings(
-        IReadOnlyDictionary<string, object> parsedYaml)
-    {
-        var shipLabelOrderList = parsedYaml["shipLabelOrder"] as List<object> ??
-                                 throw new Exception("shipLabelOrder is not in the overview file");
-
-        var shipLabelOrder = shipLabelOrderList
-            .Select(x => x as string ?? "default")
-            .ToList();
-
-        var shipLabelList = parsedYaml["shipLabels"] as List<object> ??
-                            throw new Exception("shipLabels is not in the overview file");
-
-        return shipLabelList
-            .Select(x =>
-            {
-                // Need to cast into an iterable list
-                var itemList = x as List<object>
-                               ?? throw new Exception("Unexpected value within the shipLabels");
-
-                return itemList
-                    // Each item in the list is a dictionary, cant cast as List<List<object>> for some reason
-                    .Select(y => y as List<object>)!
-                    // Compile our list of lists into key value pairs
-                    .SelectMany<List<object>, KeyValuePair<string, string?>>(w =>
-                    {
-                        // The first key in each of these is not a list, so it casts to null, and we skip it
-                        if (w == null) return new List<KeyValuePair<string, string?>>();
-
-                        return w.Select(z =>
-                        {
-                            var zList = z as List<object>
-                                        ?? throw new Exception("Unexpected value within the shipLabels");
-
-
-                            var label = zList[0] as string
-                                        ?? throw new Exception("Unexpected value within the shipLabels");
-
-                            var value = zList[1] as string;
-                            return new KeyValuePair<string, string?>(label, value);
-                        });
-                    });
-            })
-            .Where(x =>
-            {
-                // Only include items that have `state == 1` which means they are visible
-                if (!int.TryParse(x.FirstOrDefault(y => y.Key == "state").Value, out var val)) return false;
-                return val == 1;
-            })
-            .OrderBy(x =>
-            {
-                var typePair = x.FirstOrDefault(y => y.Key == "type");
-                return shipLabelOrder.IndexOf(typePair.Value ?? "default");
-            });
+        return _watchedCharacters.Any(x => x.CharacterId == characterId);
     }
 
     private void HandleLogFileRead(object? source, LogFileReadEventArgs e)
     {
         Log.Debug("Processing log entry");
-        if (!_watchedCharacters.Contains(e.CharacterId))
+        if (!IsCharacterWatched(e.CharacterId))
         {
             Log.Debug("No character matched for log, not parsing.");
             return;
@@ -193,8 +84,10 @@ public class LogParserService : ILogParserService, IDisposable
         
         Log.Debug("Processing {LineCount} log lines.", lines.Count);
 
+        var watchedCharacter = _watchedCharacters.First(x => x.CharacterId == e.CharacterId);
+
         foreach (var line in lines)
-            CallUntilTrueReturned(e.CharacterId, line,
+            CallUntilTrueReturned(watchedCharacter, line,
                 BlockNoParse,
                 FindAndRaiseIncomingDamage,
                 FindAndRaiseOutgoingDamage,
@@ -220,98 +113,94 @@ public class LogParserService : ILogParserService, IDisposable
     ///     Calls each function with the given params until one function returns true
     ///     This allows us to quit early if we find a match, without a gigantic if chain
     /// </summary>
-    /// <param name="characterId"></param>
+    /// <param name="watchedCharacter"></param>
     /// <param name="logLine"></param>
     /// <param name="functions"></param>
-    private static void CallUntilTrueReturned(string characterId, string logLine,
-        params Func<string, string, bool>[] functions)
+    private static void CallUntilTrueReturned(WatchedCharacter watchedCharacter, string logLine,
+        params Func<WatchedCharacter, string, bool>[] functions)
     {
         foreach (var func in functions)
-            if (func(characterId, logLine))
+            if (func(watchedCharacter, logLine))
                 break;
     }
 
     private bool FindAndRaiseEvent<T>(EventHandler<T>? eventHandler, string constantRegex,
         Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory,
-        string characterId,
+        WatchedCharacter watchedCharacter,
         string logLine, bool useDefault = false)
         where T : EveLogEventArgs
     {
         if (eventHandler == null) return false;
 
-        var shipLabelGroupsRegex = useDefault ? EnglishRegex.DefaultShipLabels : EnglishRegex.ShipLabelGroups;
-        var regexString = EnglishRegex.Timestamp + constantRegex + shipLabelGroupsRegex;
+        var regexString = EnglishRegex.Timestamp + constantRegex;
 
         var regex = new Regex(regexString);
         var match = regex.Match(logLine);
         if (!match.Success) return false;
         Log.Debug("Log matches type {EventType}", typeof(T).Name);
 
-        var timestampStr = match.Groups.GetValueOrDefault("Timestamp")?.Value ?? "Unknown";
-        var timestamp = ParseTimestamp(timestampStr);
-
-        var amountReceived = int.Parse(match.Groups.GetValueOrDefault("Amount")?.Value ?? "0");
-
-        var shipLabelGroups = match.Groups.Where<Group>(x => x.Name == "ShipLabel")
-            .SelectMany(x => x.Captures)
-            .Select(x => CleanMatch(x.Value))
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToList();
-
-        var labels = GetLabels(shipLabelGroups.Count, useDefault);
-
-        // Populate dictionary with our values and labels
-        var dict = new Dictionary<string, string>();
-        for (var i = 0; i < labels.Count; i++)
+        var parsedLabels = ParseShipLabels(watchedCharacter, logLine);
+        if (parsedLabels == null) return false;
+        
+        var allMatches = new Dictionary<string, string>();
+        foreach (Group parsedLabel in parsedLabels)
         {
-            var label = labels[i];
-            var matchedValue = shipLabelGroups[i];
-
-            dict.Add(label, matchedValue);
+            allMatches.TryAdd(parsedLabel.Name, parsedLabel.Value);
+        }
+        foreach (Group matchGroup in match.Groups)
+        {
+            allMatches.TryAdd(matchGroup.Name, match.Value);
         }
 
-        // Im not amazing at regex, and was struggling to get weapon and application parsed out separately
-        // So am doing it later in code here
-        var def = dict.GetValueOrDefault("default", "Unknown").Split(" - ");
-        var weapon = def[0];
-        var application = def.Length > 1 ? def[1] : "Unknown";
-
-
-        var newEvent = argsFactory(timestamp,
-            characterId,
-            amountReceived,
-            dict.GetValueOrDefault("pilot name", "Unknown"),
-            dict.GetValueOrDefault("ship type", "Unknown"),
-            weapon,
-            application,
-            dict.GetValueOrDefault("corporation", "Unknown"),
-            dict.GetValueOrDefault("alliance", "Unknown"));
-
-        eventHandler(this, newEvent);
+        ConstructAndRaiseEvent(allMatches, watchedCharacter.CharacterId, argsFactory, eventHandler);
         return true;
     }
 
-    private static string CleanMatch(string matchedText)
+    private void ConstructAndRaiseEvent<T>(IReadOnlyDictionary<string, string> matches,
+        string characterId,
+        Func<DateTimeOffset, string, int, string, string, string, string, string, string, T> argsFactory,
+        EventHandler<T> eventHandler)
+        where T : EveLogEventArgs
     {
-        return matchedText.Trim().Trim('-').Trim(' ');
+        var timestampStr = matches.GetValueOrDefault("timestamp", "Unknown");
+        var timestamp = ParseTimestamp(timestampStr);
+
+        var amountStr = matches.GetValueOrDefault("amount", "0");
+        if (!int.TryParse(amountStr, out var amount))
+        {
+            amount = 0;
+        }
+
+        var newEvent = argsFactory(timestamp,
+            characterId,
+            amount,
+            matches.GetValueOrDefault("pilotname", "Unknown"),
+            matches.GetValueOrDefault("shiptype", "Unknown"),
+            matches.GetValueOrDefault("weapon", "Unknown"),
+            matches.GetValueOrDefault("application", "Unknown"),
+            matches.GetValueOrDefault("corporation", "Unknown"),
+            matches.GetValueOrDefault("alliance", "Unknown"));
+
+        eventHandler(this, newEvent);
     }
 
-    /// <summary>
-    ///     Gets the labels for specific count of matched groups
-    ///     Will take into account overview settings for hidden groups, and priority of those groups
-    /// </summary>
-    /// <param name="count"></param>
-    /// <param name="useDefault"></param>
-    /// <returns></returns>
-    private ImmutableList<string> GetLabels(int count, bool useDefault)
+    private static GroupCollection? ParseShipLabels(WatchedCharacter character, string logLine)
     {
-        var order = useDefault ? _defaultShipLabelOrder : _shipLabelOrder;
-        return order.Count == count
-            ? order
-            :
-            // Filter to only fields in our order list, then take only the amount we need, and order according to the order list
-            _shipLabelPriority.Where(x => order.Contains(x)).Take(count).OrderBy(x => order.IndexOf(x))
-                .ToImmutableList();
+        // Attempt with Alliance included
+        var characterRegex = character.GetCharacterRegex(true);
+        var withAllianceRegex = new Regex(characterRegex);
+        var shipLabelMatch = withAllianceRegex.Match(logLine);
+        if (shipLabelMatch.Success) return shipLabelMatch.Groups;
+        
+        // Attempt without Alliance
+        var characterRegexWithoutAlliance = character.GetCharacterRegex(false);
+        var withoutAllianceRegex = new Regex(characterRegexWithoutAlliance);
+        var matchWithoutAlliance = withoutAllianceRegex.Match(logLine);
+        if (matchWithoutAlliance.Success) return matchWithoutAlliance.Groups;
+        
+        // We failed :(
+        Log.Warning("Failed to parse a log line! Could not extract the ship label values.");
+        return null;
     }
 
     private static DateTimeOffset ParseTimestamp(string timestampStr)
@@ -322,7 +211,7 @@ public class LogParserService : ILogParserService, IDisposable
             : timestamp;
     }
 
-    private bool FindAndRaiseIncomingNos(string characterId, string logLine)
+    private bool FindAndRaiseIncomingNos(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -330,10 +219,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingNos, EnglishRegex.IncomingNos,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingNos(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingNos(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -341,10 +230,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingNos, EnglishRegex.OutgoingNos,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingNeut(string characterId, string logLine)
+    private bool FindAndRaiseIncomingNeut(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -352,10 +241,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingNeut, EnglishRegex.IncomingNeut,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingNeut(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingNeut(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -363,10 +252,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingNeut, EnglishRegex.OutgoingNeut,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingShield(string characterId, string logLine)
+    private bool FindAndRaiseIncomingShield(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -374,10 +263,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingShield, EnglishRegex.IncomingShield,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingShield(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingShield(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -385,10 +274,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingShield, EnglishRegex.OutgoingShield,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingArmor(string characterId, string logLine)
+    private bool FindAndRaiseIncomingArmor(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -396,10 +285,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingArmor, EnglishRegex.IncomingArmor,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingArmor(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingArmor(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -407,10 +296,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingArmor, EnglishRegex.OutgoingArmor,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingCapacitor(string characterId, string logLine)
+    private bool FindAndRaiseIncomingCapacitor(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -418,10 +307,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingCapacitor, EnglishRegex.IncomingCapacitor,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingCapacitor(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingCapacitor(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -429,10 +318,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingCapacitor, EnglishRegex.OutgoingCapacitor,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingHull(string characterId, string logLine)
+    private bool FindAndRaiseIncomingHull(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -440,10 +329,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingHull, EnglishRegex.IncomingHull,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingHull(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingHull(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -451,32 +340,58 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingHull, EnglishRegex.OutgoingHull,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseIncomingDamage(string characterId, string logLine)
+    private bool FindAndRaiseIncomingDamage(WatchedCharacter watchedCharacter, string logLine)
     {
+        var eventHandler = OnIncomingDamage;
+        if (eventHandler == null) return false;
+        
+        var regex = new Regex(EnglishRegex.IncomingDamage);
+        var match = regex.Match(logLine);
+        if (!match.Success) return false;
+
+        var matches = new Dictionary<string, string>();
+        foreach (Group matchGroup in match.Groups)
+        {
+            matches.TryAdd(matchGroup.Name, matchGroup.Value);
+        }
+        
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
             new IncomingDamageEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
                 alliance);
 
-        return FindAndRaiseEvent(OnIncomingDamage, EnglishRegex.IncomingDamage,
-            argsBuilder, characterId, logLine, true);
+        ConstructAndRaiseEvent(matches, watchedCharacter.CharacterId, argsBuilder, eventHandler);
+        return true;
     }
 
-    private bool FindAndRaiseOutgoingDamage(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingDamage(WatchedCharacter watchedCharacter, string logLine)
     {
+        var eventHandler = OnOutgoingDamage;
+        if (eventHandler == null) return false;
+        
+        var regex = new Regex(EnglishRegex.OutgoingDamage);
+        var match = regex.Match(logLine);
+        if (!match.Success) return false;
+
+        var matches = new Dictionary<string, string>();
+        foreach (Group matchGroup in match.Groups)
+        {
+            matches.TryAdd(matchGroup.Name, matchGroup.Value);
+        }
+        
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
             new OutgoingDamageEvent(timestamp, charId, amount, pilot, ship, weapon, application, corporation,
                 alliance);
 
-        return FindAndRaiseEvent(OnOutgoingDamage, EnglishRegex.OutgoingDamage,
-            argsBuilder, characterId, logLine, true);
+        ConstructAndRaiseEvent(matches, watchedCharacter.CharacterId, argsBuilder, eventHandler);
+        return true;
     }
 
-    private bool FindAndRaiseIncomingJam(string characterId, string logLine)
+    private bool FindAndRaiseIncomingJam(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -484,10 +399,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnIncomingJam, EnglishRegex.IncomingJam,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
 
-    private bool FindAndRaiseOutgoingJam(string characterId, string logLine)
+    private bool FindAndRaiseOutgoingJam(WatchedCharacter watchedCharacter, string logLine)
     {
         var argsBuilder = (DateTimeOffset timestamp, string charId, int amount, string pilot, string ship,
                 string weapon, string application, string corporation, string alliance) =>
@@ -495,10 +410,10 @@ public class LogParserService : ILogParserService, IDisposable
                 alliance);
 
         return FindAndRaiseEvent(OnOutgoingJam, EnglishRegex.OutgoingJam,
-            argsBuilder, characterId, logLine);
+            argsBuilder, watchedCharacter, logLine);
     }
     
-    private static bool BlockNoParse(string characterId, string logLine)
+    private static bool BlockNoParse(WatchedCharacter watchedCharacter, string logLine)
     {
         var regex = new Regex(EnglishRegex.NoParse);
         return regex.IsMatch(logLine);

@@ -5,7 +5,6 @@ namespace EveLogParser.Builder;
 public class EveLogParserOptions
 {
     public string LogDirectory { get; set; } = GetDefaultLogDirectory();
-    public string? OverviewPath { get; set; }
 
     private static string GetDefaultLogDirectory()
     {
