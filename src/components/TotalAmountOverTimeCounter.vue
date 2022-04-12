@@ -4,7 +4,7 @@ import Counter from "../components/Counter.vue"
 import {inject, ref} from 'vue';
 
 const props = defineProps<{
-    eventType: string;
+    eventType: string | string[];
     periodSeconds: number;
 }>();
 
@@ -16,11 +16,20 @@ function removeValue(value){
   runningTotal.value -= value;
 }
 
+function addValue(evt){
+  runningTotal.value += evt.Amount;
+  setTimeout(removeValue, props.periodSeconds * 1000, evt.Amount);
+}
+
 const emitter = inject("emitter");
-emitter.on(props.eventType, (evt) => {
-    runningTotal.value += evt.Amount;
-    setTimeout(removeValue, props.periodSeconds * 1000, evt.Amount);
-});
+
+if (props.eventType instanceof Array) {
+  props.eventType.forEach(eventType => {
+    emitter.on(eventType, addValue);
+  });
+}else{
+  emitter.on(props.eventType, addValue);
+}
 </script>
 
 <template>
