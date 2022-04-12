@@ -26,7 +26,6 @@ public class JsonConfigurationManager
         var updatedConfig = new Models.Configuration
         {
             LogDirectory = config.LogDirectory ?? currentConfig.LogDirectory,
-            OverviewPath = config.OverviewPath ?? currentConfig.OverviewPath,
             WindowHeight = config.WindowHeight ?? currentConfig.WindowHeight,
             WindowWidth = config.WindowWidth ?? currentConfig.WindowWidth,
             WindowX = config.WindowX ?? currentConfig.WindowX,
@@ -47,7 +46,6 @@ public class JsonConfigurationManager
             WindowX = 0,
             WindowY = 0,
             LogDirectory = null,
-            OverviewPath = null,
         };
         File.WriteAllText(path, JsonConvert.SerializeObject(config, Formatting.Indented));
     }

@@ -23,8 +23,13 @@
 }
 
 .account-name {
-    grid-column: 2/5;
+    grid-column: 2/4;
 }
+
+.account-overview{
+    grid-column: 4/6;
+}
+
 
 .account-remove-btn {
     grid-column: 6;

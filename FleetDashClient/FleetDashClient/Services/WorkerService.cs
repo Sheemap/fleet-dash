@@ -1,12 +1,10 @@
 ﻿using ElectronNET.API;
 using EveLogParser;
-using EveLogParser.Models.Events;
 using FleetDashClient.Configuration;
 using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
 using FleetDashClient.ViewModels;
 using Serilog;
-using Serilog.Core;
 using static System.Threading.Tasks.Task;
 
 namespace FleetDashClient.Services;
@@ -82,23 +80,14 @@ public class WorkerService : BackgroundService
     {
         var characters = _dbContext.Characters.ToList();
         
-        characters.ForEach(x => _logParserService.StartWatchingCharacter(x.Id));
+        characters.ForEach(x => _logParserService.StartWatchingCharacter(x.Id, x.OverviewPath));
         
         _characterService.OnCharacterAdded += HandleCharacterAdded;
+        _characterService.OnCharacterModified += HandleCharacterModified;
         _characterService.OnCharacterRemoved += HandleCharacterRemoved;
         _logViewModel.OnLogDirectoryUpdated += HandleLogDirectoryUpdated;
-        _logViewModel.OnOverviewFileUpdated += HandleOverviewFileUpdated;
 
         _logParserService.Start();
-    }
-    
-    private void HandleOverviewFileUpdated(object sender, PathUpdatedEventArgs overviewPath)
-    {
-        var config = new Models.Configuration
-        {
-            OverviewPath = overviewPath.Path,
-        };
-        _configManager.UpdateConfiguration(config);
     }
 
     private void HandleLogDirectoryUpdated(object sender, PathUpdatedEventArgs logDirectory)
@@ -112,7 +101,13 @@ public class WorkerService : BackgroundService
     
     private void HandleCharacterAdded(object sender, CharacterAddedEventArgs args)
     {
-        _logParserService.StartWatchingCharacter(args.Character.Id);
+        _logParserService.StartWatchingCharacter(args.Character.Id, args.Character.OverviewPath);
+    }
+    
+    private void HandleCharacterModified(object sender, CharacterModifiedEventArgs args)
+    {
+        _logParserService.StopWatchingCharacter(args.CharacterId);
+        _logParserService.StartWatchingCharacter(args.CharacterId, args.OverviewPath);
     }
 
     private void HandleCharacterRemoved(object sender, CharacterRemovedEventArgs args)

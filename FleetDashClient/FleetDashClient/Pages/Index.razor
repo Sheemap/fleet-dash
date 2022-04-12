@@ -9,6 +9,7 @@
 <div id="account-list">
     <div class="account-status">Status</div>
     <div class="account-name">Name</div>
+    <div class="account-overview">Overview</div>
     <div class="account-remove-btn">Remove</div>
     <hr style="height: 2px;"/>
     @if (_indexViewModel.Characters.Count == 0)
@@ -24,6 +25,7 @@
             <CharacterRow Character=character
                           Status=_characterService.GetCharacterStatus(character.Id)
                           DeleteCharacterHook=_indexViewModel.RemoveCharacterAsync
+                          SelectCharacterOverviewHook=_indexViewModel.SelectCharacterOverviewAsync
                           RefreshList=RefreshList/>
             <hr/>
         }

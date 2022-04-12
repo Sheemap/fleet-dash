@@ -2,13 +2,13 @@ using FleetDashClient.Data;
 using FleetDashClient.Models;
 using FleetDashClient.Models.Events;
 using Microsoft.EntityFrameworkCore;
-using Quobject.SocketIoClientDotNet.Client;
 
 namespace FleetDashClient.Services;
 
 public class CharacterService : ICharacterService
 {
     public event EventHandler<CharacterAddedEventArgs> OnCharacterAdded;
+    public event EventHandler<CharacterModifiedEventArgs> OnCharacterModified;
     public event EventHandler<CharacterRemovedEventArgs> OnCharacterRemoved;
     
     private readonly DataContext _dbContext;
@@ -32,6 +32,19 @@ public class CharacterService : ICharacterService
         if (raiseEvent != null) raiseEvent(this, new CharacterAddedEventArgs(character));
         
         return character;
+    }
+    
+    public async Task ModifyCharacterAsync(string characterId, string? overviewPath)
+    {
+        var character = _dbContext.Characters.FirstOrDefault(x => x.Id == characterId);
+        if (character != null)
+        {
+            character.OverviewPath = overviewPath;
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var raiseEvent = OnCharacterModified;
+        if (raiseEvent != null) raiseEvent(this, new CharacterModifiedEventArgs(characterId, overviewPath));
     }
 
     public async Task RemoveCharacterAsync(string characterId)

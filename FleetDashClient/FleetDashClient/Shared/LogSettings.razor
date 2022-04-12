@@ -1,25 +1,15 @@
-﻿@using ElectronNET.API
-@using ElectronNET.API.Entities
+﻿@using FleetDashClient.ViewModels
 @using EventAggregator.Blazor
-@using FleetDashClient.Models.Events
-@using FleetDashClient.ViewModels
 @inherits ComponentBase
 
 @inject LogViewModel _logViewModel
 @inject IEventAggregator _eventAggregator
 
 <p><strong>Log Directory:</strong> @_logViewModel.LogDirectory <button @onclick="_logViewModel.UpdateLogDirectory">Change</button></p>
-<p><strong>Overview</strong>: @_logViewModel.OverviewPath <button @onclick="_logViewModel.UpdateOverview">Change</button></p>
 
 @code{
-
     protected override void OnInitialized()
     {
         _eventAggregator.Subscribe(this);
-    }
-    
-    public Task HandleAsync(PathUpdatedEventArgs _)
-    {
-        return Task.CompletedTask;
     }
 }

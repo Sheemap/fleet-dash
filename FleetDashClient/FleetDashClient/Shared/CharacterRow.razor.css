@@ -1,19 +1,4 @@
-﻿button {
-    border: 0;
-    background: none;
-    box-shadow: none;
-    border-radius: 0px;
-}
-
-#confirm-button {
-    background-color: #35D485;
-}
-
-#cancel-button {
-    background-color: #E30C00;
-}
-
-#remove-button:hover {
+﻿#remove-button:hover {
     cursor: pointer;
 }
 
@@ -22,7 +7,11 @@
 }
 
 .account-name {
-    grid-column: 2/5;
+    grid-column: 2/4;
+}
+
+.account-overview{
+    grid-column: 4/6;
 }
 
 .account-remove-btn {

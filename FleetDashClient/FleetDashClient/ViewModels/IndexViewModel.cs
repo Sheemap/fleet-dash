@@ -1,8 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using ElectronNET.API;
+using ElectronNET.API.Entities;
 using EventAggregator.Blazor;
 using FleetDashClient.Models;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
+using Serilog;
 
 namespace FleetDashClient.ViewModels;
 
@@ -82,6 +85,26 @@ public class IndexViewModel : IDisposable, IHandle<LogStreamedEventArgs>, IHandl
     {
         Characters.RemoveAll(x => x.Id == characterId);
         return _characterService.RemoveCharacterAsync(characterId);
+    }
+
+    public async Task SelectCharacterOverviewAsync(string characterId, Func<string?, Task> callback)
+    {
+        var mainWindow = Electron.WindowManager.BrowserWindows.First();
+        var options = new OpenDialogOptions {
+            Properties = new[] {
+                OpenDialogProperty.openFile
+            },
+            Title = "Select Overview",
+        };
+
+        Log.Debug("Prompting for file selection");
+        string[] file = await Electron.Dialog.ShowOpenDialogAsync(mainWindow, options);
+        Log.Debug("Overview file selected: {@File}", file);
+        if (file.Length > 0)
+        {
+            await _characterService.ModifyCharacterAsync(characterId, file[0]);
+            await callback(file[0]);
+        }
     }
 
     private void HandleCharacterAdd(object sender, CharacterAddedEventArgs args)

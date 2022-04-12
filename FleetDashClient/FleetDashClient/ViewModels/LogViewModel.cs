@@ -1,12 +1,8 @@
-﻿using System.Runtime.InteropServices;
-using ElectronNET.API;
+﻿using ElectronNET.API;
 using ElectronNET.API.Entities;
 using EventAggregator.Blazor;
 using FleetDashClient.Configuration;
-using FleetDashClient.Data;
 using FleetDashClient.Models.Events;
-using FleetDashClient.Services;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -16,7 +12,6 @@ public class LogViewModel
 
 {
     public event EventHandler<PathUpdatedEventArgs> OnLogDirectoryUpdated;
-    public event EventHandler<PathUpdatedEventArgs> OnOverviewFileUpdated;
     
     public string LogDirectory { get; set; }
     public string OverviewPath { get; set; }
@@ -35,14 +30,12 @@ public class LogViewModel
         _eventAggregator = eventAggregator;
 
         LogDirectory = _configuration.CurrentValue.LogDirectory;
-        OverviewPath = _configuration.CurrentValue.OverviewPath;
         config.OnChange(UpdateConfig);
     }
     
     private void UpdateConfig(Models.Configuration config)
     {
         LogDirectory = config.LogDirectory;
-        OverviewPath = config.OverviewPath;
         _eventAggregator.PublishAsync(new PathUpdatedEventArgs(string.Empty));
     }
 
@@ -65,26 +58,6 @@ public class LogViewModel
             var config = new Models.Configuration
             {
                 LogDirectory = folder[0]
-            };
-            _configManager.UpdateConfiguration(config);
-        }
-    }
-
-    public async Task UpdateOverview()
-    {
-        var mainWindow = Electron.WindowManager.BrowserWindows.First();
-        var options = new OpenDialogOptions {
-            Properties = new[] {
-                OpenDialogProperty.openFile
-            }
-        };
-
-        string[] file = await Electron.Dialog.ShowOpenDialogAsync(mainWindow, options);
-        if (file.Length > 0)
-        {
-            var config = new Models.Configuration
-            {
-                OverviewPath = file[0]
             };
             _configManager.UpdateConfiguration(config);
         }
