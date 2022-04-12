@@ -14,6 +14,8 @@ import TotalAmountOverTimeCounter from "../components/TotalAmountOverTimeCounter
 const eventStore = useEventStore();
 
 const emitter = inject("emitter");
+
+const incomingLogiEvents = ["IncomingShieldEvent", "IncomingArmorEvent", "IncomingHullEvent"];
 </script>
 
 <template>
@@ -34,6 +36,8 @@ const emitter = inject("emitter");
             <FleetOverview/>
           </div>
           <LogiDpsSlider :period-seconds="15" />
+          <TotalAmountOverTimeCounter title="Incoming Logi" :event-type="incomingLogiEvents" :period-seconds=15 />
+
 
         </div>
 
