@@ -3,13 +3,13 @@ import Counter from "./Counter.vue";
 import SliderMeter from "./SliderMeter.vue";
 import RecentIncomingJams from "./RecentIncomingJams.vue";
 import RecentOutgoingJams from "./RecentOutgoingJams.vue";
-import FleetOverview from "./FleetOverview.vue";
 import {Ref} from "vue";
 import {createUUID} from "../js/shared";
 
 import {useUserStore} from "../js/userStore";
 import {TOTAL_OVER_TIME_WIDGET_ID, TOTAL_SLIDER_WIDGET_ID, INCOMING_JAM_WIDGET_ID, OUTGOING_JAM_WIDGET_ID, OVERVIEW_WIDGET_ID} from "../js/constants";
 import AddOverlay from "./AddOverlay.vue";
+import WidgetDisplayFleetOverview from "./WidgetDisplayFleetOverview.vue";
 
 const props = defineProps<{
   dashboardRef: Ref;
@@ -49,7 +49,7 @@ function append(widgetId: string) {
       <RecentOutgoingJams />
     </AddOverlay>
     <AddOverlay :widget-id="OVERVIEW_WIDGET_ID" :append-func="append">
-      <FleetOverview />
+      <WidgetDisplayFleetOverview />
     </AddOverlay>
   </div>
 </template>

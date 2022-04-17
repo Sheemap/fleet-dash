@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import SummaryShipCard from './SummaryShipCard.vue';
 import {useFleetStore} from "../js/fleetStore";
-import {computed, Ref, ref} from "vue";
+import {computed, getCurrentInstance, Ref, ref} from "vue";
 import {useUserStore} from "../js/userStore";
 import SummaryTextItemWithRef from "./SummaryTextItemWithRef.vue";
+
+const keyStr = getCurrentInstance()?.vnode.key;
+const id = typeof keyStr === "string" ? keyStr.split("_")[1] : "";
 
 type SummaryShip = {
   id: number;
@@ -51,17 +54,34 @@ function getSystemName(systemId: number) : Ref<string> {
 
   return systemName;
 }
+
+function removeFromGrid(): void {
+  userStore.dash_layout = userStore.dash_layout.filter((item) => !item.i.endsWith(id));
+  localStorage.removeItem("widget_settings_" + id);
+}
 </script>
 
 <template>
     <div class="border rounded drop-shadow bg-zinc-800 h-full">
+      <svg v-if="userStore.widget_drawer_open && id !== ''"
+           @click="removeFromGrid"
+           class="fixed z-50 top-0 right-0 mr-1 config-button cursor-pointer transition ease-in-out opacity-70 hover:opacity-100"
+           xmlns="http://www.w3.org/2000/svg"
+           height="30px"
+           viewBox="0 0 24 24"
+           width="30px"
+           fill="#DC2626">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      </svg>
+
       <div v-if="fleetBoss">
       <div class="w-full h-7 px-2 flex flex-row overflow-clip">
         <span class="max-h-2 text-xl flex-grow">Fleet Overview</span>
       </div>
       <hr/>
 
-      <div class="max-h-full grid grid-rows-2 w-full px-2 gap-2 pt-2 pb-8 min-h-0 min-w-0 md:fixed">
+      <div class="h-full grid grid-rows-2 w-full px-2 gap-2 pt-2 pb-8 min-h-0 min-w-0 md:fixed">
         <div>
           <div class="h-full w-full flex flex-col overflow-auto flex-nowrap xl:flex-wrap">
             <SummaryShipCard v-for="ship in shipSummary" :key="ship.id" :ship-id=ship.id :count=ship.count />
@@ -69,7 +89,7 @@ function getSystemName(systemId: number) : Ref<string> {
         </div>
 
         <div>
-            <span class="fixed sticky">Locations</span>
+            <span>Locations</span>
             <hr/>
             <div class="overflow h-5/6 flex flex-col overflow-auto flex-nowrap lg:flex-wrap">
               <SummaryTextItemWithRef v-for="location in locationSummary" :key=location.id :text=getSystemName(location.id) :count=location.count />
