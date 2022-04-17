@@ -1,4 +1,14 @@
 import { defineStore } from 'pinia';
+import {
+    INCOMING_DAMAGE_WIDGET_ID,
+    OUTGOING_DAMAGE_WIDGET_ID,
+    INCOMING_JAM_WIDGET_ID,
+    OUTGOING_JAM_WIDGET_ID,
+    OVERVIEW_WIDGET_ID,
+    SLIDER_WIDGET_ID,
+    INCOMING_LOGI_WIDGET_ID
+} from './constants'
+import {createUUID} from "./shared";
 
 export type TokenSet = {
     access_token: string;
@@ -12,10 +22,25 @@ type ApiTokenSet = {
     expires_in: number;
 };
 
+function appendUniqueId(widget: string): string {
+    return widget + "_" + createUUID();
+}
+
+const DEFAULT_LAYOUT = [
+    {"x":0,"y":0,"w":3,"h":1,"i":appendUniqueId(INCOMING_DAMAGE_WIDGET_ID)},
+    {"x":3,"y":0,"w":3,"h":1,"i":appendUniqueId(OUTGOING_DAMAGE_WIDGET_ID)},
+    {"x":6,"y":0,"w":3,"h":3,"i":appendUniqueId(INCOMING_JAM_WIDGET_ID)},
+    {"x":9,"y":0,"w":3,"h":3,"i":appendUniqueId(OUTGOING_JAM_WIDGET_ID)},
+    {"x":0,"y":1,"w":3,"h":2,"i":appendUniqueId(OVERVIEW_WIDGET_ID)},
+    {"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(SLIDER_WIDGET_ID)},
+    {"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(INCOMING_LOGI_WIDGET_ID)}
+];
+
 export const useUserStore = defineStore('user', {
     state: () => {
         return {
             auth_state: localStorage.getItem('auth_state') || '',
+            dash_layout: JSON.parse(localStorage.getItem('dash_layout') || JSON.stringify(DEFAULT_LAYOUT)) || DEFAULT_LAYOUT,
             _portrait_url: localStorage.getItem('portrait_url') || '',
             _token_set: JSON.parse(localStorage.getItem('token_set') || "{}") || {},
         }
@@ -39,6 +64,10 @@ export const useUserStore = defineStore('user', {
         }
     },
     actions: {
+        updateLayout(newLayout) {
+            this.dash_layout = newLayout;
+            localStorage.setItem('dash_layout', JSON.stringify(newLayout));
+        },
         signOut(){
             localStorage.removeItem('auth_state')
             localStorage.removeItem('portrait_url')

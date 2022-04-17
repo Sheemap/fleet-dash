@@ -3,6 +3,7 @@ import NotFound from '../pages/NotFound.vue'
 import EveSSOCallback from '../pages/EveSSOCallback.vue'
 import '../index.css'
 
+import VueGridLayout from 'vue-grid-layout'
 import {Component, createApp, h, RendererElement, RendererNode, VNode} from 'vue'
 
 import { createPinia } from 'pinia'
@@ -38,6 +39,7 @@ const emitter = mitt()
 const app = createApp(SimpleRouter)
 
 app.use(createPinia())
+app.use(VueGridLayout)
 
 app.provide('emitter', emitter)
 

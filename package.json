@@ -11,7 +11,8 @@
     "numeral": "^2.0.6",
     "pinia": "^2.0.11",
     "vue": "^3.2.25",
-    "vue-toast-notification": "3.0"
+    "vue-toast-notification": "3.0",
+    "vue-grid-layout": "^3.0.0-beta1"
   },
   "devDependencies": {
     "@types/numeral": "^2.0.2",
