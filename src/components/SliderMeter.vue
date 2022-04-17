@@ -24,7 +24,7 @@ function zeroIfNaN(value: number) {
 </script>
 
 <template>
-    <div class="border rounded drop-shadow text-center bg-zinc-800">
+    <div class="h-full border rounded drop-shadow text-center bg-zinc-800 flex flex-col justify-center">
         <div class="text-2xl mt-4">{{ title }}</div>
         <div class="text-zinc-400 italic">{{ subtitle }}</div>
       <div class="flex pt-1">

@@ -3,8 +3,7 @@ import {
     TOTAL_OVER_TIME_WIDGET_ID,
     INCOMING_JAM_WIDGET_ID,
     OUTGOING_JAM_WIDGET_ID,
-    OVERVIEW_WIDGET_ID,
-    SLIDER_WIDGET_ID
+    OVERVIEW_WIDGET_ID
 } from './constants'
 import {createUUID} from "./shared";
 
@@ -40,7 +39,6 @@ function generateDefaultLayout(){
     layout.push({"x":6,"y":0,"w":3,"h":3,"i":appendUniqueId(INCOMING_JAM_WIDGET_ID)});
     layout.push({"x":9,"y":0,"w":3,"h":3,"i":appendUniqueId(OUTGOING_JAM_WIDGET_ID)});
     layout.push({"x":0,"y":1,"w":3,"h":2,"i":appendUniqueId(OVERVIEW_WIDGET_ID)});
-    layout.push({"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(SLIDER_WIDGET_ID)});
 
     return layout;
 }
@@ -49,7 +47,7 @@ export const useUserStore = defineStore('user', {
     state: () => {
         let dashLayout = JSON.parse(localStorage.getItem('dash_layout') || JSON.stringify([])) || [];
         if(dashLayout.length === 0){
-            dashLayout = generateDefaultLayout(dashLayout);
+            dashLayout = generateDefaultLayout();
         }
         
         return {

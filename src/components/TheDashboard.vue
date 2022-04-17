@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ConfigurableTotalOverTimeCounter from "./ConfigurableTotalOverTimeCounter.vue";
-import FifteenSecondsLogiDpsSlider from "./FifteenSecondsLogiDpsSlider.vue";
+import ConfigurableSliderMeter from "./ConfigurableSliderMeter.vue";
 import RecentIncomingJams from "./RecentIncomingJams.vue";
 import RecentOutgoingJams from "./RecentOutgoingJams.vue";
 import FleetOverview from "./FleetOverview.vue";
@@ -10,10 +10,10 @@ import {useUserStore} from "../js/userStore";
 
 import {
   TOTAL_OVER_TIME_WIDGET_ID,
+  TOTAL_SLIDER_WIDGET_ID,
   INCOMING_JAM_WIDGET_ID,
   OUTGOING_JAM_WIDGET_ID,
-  OVERVIEW_WIDGET_ID,
-  SLIDER_WIDGET_ID,
+  OVERVIEW_WIDGET_ID
 } from '../js/constants';
 
 const props = defineProps<{
@@ -28,8 +28,8 @@ function renderFromKey(key : string) {
   switch (widgetId) {
     case TOTAL_OVER_TIME_WIDGET_ID:
       return ConfigurableTotalOverTimeCounter;
-    case SLIDER_WIDGET_ID:
-      return FifteenSecondsLogiDpsSlider;
+    case TOTAL_SLIDER_WIDGET_ID:
+      return ConfigurableSliderMeter;
     case INCOMING_JAM_WIDGET_ID:
       return RecentIncomingJams;
     case OUTGOING_JAM_WIDGET_ID:

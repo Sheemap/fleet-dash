@@ -8,7 +8,7 @@ import {Ref} from "vue";
 import {createUUID} from "../js/shared";
 
 import {useUserStore} from "../js/userStore";
-import {TOTAL_OVER_TIME_WIDGET_ID, SLIDER_WIDGET_ID, INCOMING_JAM_WIDGET_ID, OUTGOING_JAM_WIDGET_ID, OVERVIEW_WIDGET_ID} from "../js/constants";
+import {TOTAL_OVER_TIME_WIDGET_ID, TOTAL_SLIDER_WIDGET_ID, INCOMING_JAM_WIDGET_ID, OUTGOING_JAM_WIDGET_ID, OVERVIEW_WIDGET_ID} from "../js/constants";
 import AddOverlay from "./AddOverlay.vue";
 
 const props = defineProps<{
@@ -39,8 +39,8 @@ function append(widgetId: string) {
     <AddOverlay :widget-id="TOTAL_OVER_TIME_WIDGET_ID" :append-func="append">
       <Counter title="Total Counter" subtitle="Tracks totals for an event" :count=0 />
     </AddOverlay>
-    <AddOverlay :widget-id="SLIDER_WIDGET_ID" :append-func="append">
-      <SliderMeter title="Sliding Meter" subtitle="" :left-value=0 :right-value=0 text-suffix="" />
+    <AddOverlay :widget-id="TOTAL_SLIDER_WIDGET_ID" :append-func="append">
+      <SliderMeter title="Sliding Meter" subtitle="Compare two totals" :left-value=0 :right-value=0 text-suffix="" />
     </AddOverlay>
     <AddOverlay :widget-id="INCOMING_JAM_WIDGET_ID" :append-func="append">
       <RecentIncomingJams />
