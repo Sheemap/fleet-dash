@@ -1,12 +1,10 @@
 import { defineStore } from 'pinia';
 import {
-    INCOMING_DAMAGE_WIDGET_ID,
-    OUTGOING_DAMAGE_WIDGET_ID,
+    TOTAL_OVER_TIME_WIDGET_ID,
     INCOMING_JAM_WIDGET_ID,
     OUTGOING_JAM_WIDGET_ID,
     OVERVIEW_WIDGET_ID,
-    SLIDER_WIDGET_ID,
-    INCOMING_LOGI_WIDGET_ID
+    SLIDER_WIDGET_ID
 } from './constants'
 import {createUUID} from "./shared";
 
@@ -26,21 +24,38 @@ function appendUniqueId(widget: string): string {
     return widget + "_" + createUUID();
 }
 
-const DEFAULT_LAYOUT = [
-    {"x":0,"y":0,"w":3,"h":1,"i":appendUniqueId(INCOMING_DAMAGE_WIDGET_ID)},
-    {"x":3,"y":0,"w":3,"h":1,"i":appendUniqueId(OUTGOING_DAMAGE_WIDGET_ID)},
-    {"x":6,"y":0,"w":3,"h":3,"i":appendUniqueId(INCOMING_JAM_WIDGET_ID)},
-    {"x":9,"y":0,"w":3,"h":3,"i":appendUniqueId(OUTGOING_JAM_WIDGET_ID)},
-    {"x":0,"y":1,"w":3,"h":2,"i":appendUniqueId(OVERVIEW_WIDGET_ID)},
-    {"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(SLIDER_WIDGET_ID)},
-    {"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(INCOMING_LOGI_WIDGET_ID)}
-];
+function generateDefaultLayout(){
+    let layout : any[] = [];
+
+    let uuid = createUUID();
+    let settings = {"title": "Incoming Damage", "periodSeconds": 15, "eventType": "IncomingDamageEvent"};
+    localStorage.setItem("widget_settings_" + uuid, JSON.stringify(settings));
+    layout.push({"x":0,"y":0,"w":3,"h":1,"i":`${TOTAL_OVER_TIME_WIDGET_ID}_${uuid}`});
+
+    let uuid2 = createUUID();
+    let settings2 = {"title": "Outgoing Damage", "periodSeconds": 15, "eventType": "OutgoingDamageEvent"};
+    localStorage.setItem("widget_settings_" + uuid2, JSON.stringify(settings2));
+    layout.push({"x":3,"y":0,"w":3,"h":1,"i":`${TOTAL_OVER_TIME_WIDGET_ID}_${uuid2}`});
+
+    layout.push({"x":6,"y":0,"w":3,"h":3,"i":appendUniqueId(INCOMING_JAM_WIDGET_ID)});
+    layout.push({"x":9,"y":0,"w":3,"h":3,"i":appendUniqueId(OUTGOING_JAM_WIDGET_ID)});
+    layout.push({"x":0,"y":1,"w":3,"h":2,"i":appendUniqueId(OVERVIEW_WIDGET_ID)});
+    layout.push({"x":3,"y":1,"w":3,"h":1,"i":appendUniqueId(SLIDER_WIDGET_ID)});
+
+    return layout;
+}
 
 export const useUserStore = defineStore('user', {
     state: () => {
+        let dashLayout = JSON.parse(localStorage.getItem('dash_layout') || JSON.stringify([])) || [];
+        if(dashLayout.length === 0){
+            dashLayout = generateDefaultLayout(dashLayout);
+        }
+        
         return {
             auth_state: localStorage.getItem('auth_state') || '',
-            dash_layout: JSON.parse(localStorage.getItem('dash_layout') || JSON.stringify(DEFAULT_LAYOUT)) || DEFAULT_LAYOUT,
+            widget_drawer_open: false,
+            dash_layout: dashLayout,
             _portrait_url: localStorage.getItem('portrait_url') || '',
             _token_set: JSON.parse(localStorage.getItem('token_set') || "{}") || {},
         }
@@ -61,7 +76,7 @@ export const useUserStore = defineStore('user', {
             let payload = JSON.parse(atob(state._token_set.access_token.split('.')[1]));
 
             return payload.sub.split(':')[2];
-        }
+        },
     },
     actions: {
         appendToLayout(newItem){
