@@ -20,6 +20,10 @@ import {
   INCOMING_LOGI_WIDGET_ID
 } from '../js/constants';
 
+const props = defineProps<{
+  updateRef: any;
+}>();
+
 const userStore = useUserStore();
 
 
@@ -52,6 +56,7 @@ function onLayoutUpdate(layout) {
 
 <template>
   <grid-layout
+      :ref="(el) => updateRef(el)"
       :layout.sync="userStore.dash_layout"
       :col-num="12"
 

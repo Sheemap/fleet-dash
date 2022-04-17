@@ -64,6 +64,10 @@ export const useUserStore = defineStore('user', {
         }
     },
     actions: {
+        appendToLayout(newItem){
+            this.dash_layout.push(newItem);
+            localStorage.setItem('dash_layout', JSON.stringify(this.dash_layout));
+        },
         updateLayout(newLayout) {
             this.dash_layout = newLayout;
             localStorage.setItem('dash_layout', JSON.stringify(newLayout));
