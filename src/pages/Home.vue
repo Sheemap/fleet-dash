@@ -11,7 +11,6 @@ const eventStore = useEventStore();
 const userStore = useUserStore();
 
 const dashboardRef = ref(null);
-
 </script>
 
 <template>

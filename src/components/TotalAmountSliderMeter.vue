@@ -6,8 +6,8 @@ import {inject, ref} from 'vue';
 const props = defineProps<{
   title: string;
   subtitle: string;
-  leftEvent: string;
-  rightEvent: string;
+  leftEvents: string[];
+  rightEvents: string[];
   periodSeconds: number;
 }>();
 
@@ -16,23 +16,32 @@ let runningLeftTotal = ref(0);
 
 const emitter = inject("emitter");
 
+for(let event of props.rightEvents){
+  emitter.on(event, addRightValue);
+}
+
 function removeRightValue(value){
   runningRightTotal.value -= value;
 }
 
-emitter.on(props.rightEvent, (evt) => {
+function addRightValue(evt) {
   runningRightTotal.value += evt.Amount;
   setTimeout(removeRightValue, props.periodSeconds * 1000, evt.Amount);
-});
+}
+
+
+for(let event of props.leftEvents){
+  emitter.on(event, addLeftValue);
+}
 
 function removeLeftValue(value){
   runningLeftTotal.value -= value;
 }
 
-emitter.on(props.leftEvent, (evt) => {
+function addLeftValue (evt) {
   runningLeftTotal.value += evt.Amount;
   setTimeout(removeLeftValue, props.periodSeconds * 1000, evt.Amount);
-});
+}
 </script>
 
 <template>

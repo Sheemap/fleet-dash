@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, reactive, ref} from "vue";
 import {useUserStore} from "../js/userStore";
+import {EVENT_TYPES, MULTI_SELECT_STYLE} from "../js/constants";
 
-import EventTypeOptions from "./EventTypeOptions.vue";
 import TotalAmountSliderMeter from "./TotalAmountSliderMeter.vue";
+import Multiselect from '@vueform/multiselect'
 
 const userStore = useUserStore();
 const keyStr = getCurrentInstance()?.vnode.key;
@@ -16,10 +17,10 @@ const configurationIsValid = computed((): boolean => {
   let titleValid = typeof settings.title !== 'undefined' && settings.title !== "";
   let subtitleValid = typeof settings.subtitle !== 'undefined' && settings.subtitle !== "";
   let periodValid = typeof settings.periodSeconds !== 'undefined' && !isNaN(settings.periodSeconds) && settings.periodSeconds > 0;
-  let leftEventValue = typeof settings.leftEvent !== 'undefined' && settings.leftEvent !== "";
-  let rightEventValue = typeof settings.rightEvent !== 'undefined' && settings.rightEvent !== "";
+  let leftEventsValue = typeof settings.leftEvents !== 'undefined' && settings.leftEvents.length > 0;
+  let rightEventsValue = typeof settings.rightEvents !== 'undefined' && settings.rightEvents.length > 0;
 
-  return titleValid && subtitleValid && periodValid && leftEventValue && rightEventValue;
+  return titleValid && subtitleValid && periodValid && leftEventsValue && rightEventsValue;
 });
 
 const configuring = ref(!configurationIsValid.value);
@@ -36,7 +37,7 @@ function removeFromGrid(): void {
 </script>
 
 <template>
-  <span class="static">
+  <span>
     <svg class="fixed z-50 top-0 right-0 m-1 config-button cursor-pointer transition ease-in-out opacity-50 hover:opacity-100"
          @click="commitSettings"
          xmlns="http://www.w3.org/2000/svg"
@@ -63,24 +64,25 @@ function removeFromGrid(): void {
 
     <span v-if="configuring" class="border rounded drop-shadow text-center bg-zinc-800 h-full flex flex-col items-center overflow-auto">
 
-
       <input v-model="settings.title" class="bg-zinc-800 mt-0 block w-1/2 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300" type="text" placeholder="Title" />
       <input v-model="settings.subtitle" class="bg-zinc-800 mt-0 block w-1/2 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300" type="text" placeholder="Subtitle" />
       <input v-model="settings.periodSeconds" class="bg-zinc-800 mt-0 block w-1/2 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300" type="number" placeholder="Period Seconds" />
-      <select v-model="settings.leftEvent" class="bg-zinc-800 mt-0 block w-3/4 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300">
-        <EventTypeOptions />
-      </select>
-      <select v-model="settings.rightEvent" class="bg-zinc-800 mt-0 block w-3/4 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300">
-        <EventTypeOptions />
-      </select>
+
+      <span class="w-[90%] p-3">
+        <Multiselect v-model="settings.leftEvents" mode="multiple" :searchable="true" placeholder="Left side events" :multipleLabel="(vals) => `${vals.length} left side events`" :options="EVENT_TYPES" :classes="MULTI_SELECT_STYLE" />
+      </span>
+      <span class="w-[90%] p-3">
+        <Multiselect v-model="settings.rightEvents" mode="multiple" :searchable="true" placeholder="Right side events" :multipleLabel="(vals) => `${vals.length} right side events`" :options="EVENT_TYPES" :classes="MULTI_SELECT_STYLE" />
+      </span>
+
     </span>
 
     <span v-else>
       <TotalAmountSliderMeter v-if="configurationIsValid"
                               :title="settings.title"
                               :subtitle="settings.subtitle"
-                              :left-event="settings.leftEvent"
-                              :right-event="settings.rightEvent"
+                              :left-events="settings.leftEvents"
+                              :right-events="settings.rightEvents"
                               :period-seconds=settings.periodSeconds />
       <span v-else class="border rounded drop-shadow text-center bg-zinc-800 text-red-500 font-bold text-xl h-full flex flex-col justify-center">
         Configuration is not valid

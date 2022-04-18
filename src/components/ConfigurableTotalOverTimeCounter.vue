@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, reactive, ref} from "vue";
 import {useUserStore} from "../js/userStore";
+import {EVENT_TYPES, MULTI_SELECT_STYLE} from "../js/constants";
 
 import TotalAmountOverTimeCounter from "./TotalAmountOverTimeCounter.vue";
-import EventTypeOptions from "./EventTypeOptions.vue";
+import Multiselect from "@vueform/multiselect";
 
 const userStore = useUserStore();
 const keyStr = getCurrentInstance()?.vnode.key;
@@ -15,10 +16,10 @@ let settings = reactive(JSON.parse(localStorage.getItem("widget_settings_" + id)
 const configurationIsValid = computed((): boolean => {
   let titleValid = typeof settings.title !== 'undefined' && settings.title !== "";
   let periodValid = typeof settings.periodSeconds !== 'undefined' && !isNaN(settings.periodSeconds) && settings.periodSeconds > 0;
-  let eventTypeValid = typeof settings.eventType !== 'undefined' && settings.eventType !== "";
+  let eventTypesValid = typeof settings.eventTypes !== 'undefined' && settings.eventTypes.length > 0;
 
 
-  return titleValid && periodValid && eventTypeValid;
+  return titleValid && periodValid && eventTypesValid;
 });
 
 const configuring = ref(!configurationIsValid.value);
@@ -65,13 +66,13 @@ function removeFromGrid(): void {
 
       <input v-model="settings.title" class="bg-zinc-800 mt-0 block w-1/2 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300" type="text" placeholder="Title" />
       <input v-model="settings.periodSeconds" class="bg-zinc-800 mt-0 block w-1/2 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300" type="number" placeholder="Period Seconds" />
-      <select v-model="settings.eventType" class="bg-zinc-800 mt-0 block w-3/4 text-center px-0.5 border-0 border-b-2 border-zinc-500 focus:ring-0 focus:border-zinc-300">
-        <EventTypeOptions />
-      </select>
+      <span class="w-[90%] p-3">
+        <Multiselect v-model="settings.eventTypes" mode="multiple" :searchable="true" placeholder="Event types" :multipleLabel="(vals) => `${vals.length} event types`" :options="EVENT_TYPES" :classes="MULTI_SELECT_STYLE" />
+      </span>
     </span>
 
     <span v-else>
-      <TotalAmountOverTimeCounter v-if="configurationIsValid" :title="settings.title" :period-seconds=settings.periodSeconds :event-type="settings.eventType" />
+      <TotalAmountOverTimeCounter v-if="configurationIsValid" :title="settings.title" :period-seconds=settings.periodSeconds :event-type="settings.eventTypes" />
 
       <span v-else class="border rounded drop-shadow text-center bg-zinc-800 text-red-500 font-bold text-xl h-full flex flex-col justify-center">
         Configuration is not valid
