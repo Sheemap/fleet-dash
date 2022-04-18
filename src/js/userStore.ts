@@ -23,16 +23,23 @@ function appendUniqueId(widget: string): string {
     return widget + "_" + createUUID();
 }
 
+function clearKnownWidgetSettings(layout: any[]){
+    for (let item of layout){
+        let id = item.i.split("_")[1];
+        localStorage.removeItem("widget_settings_" + id);
+    }
+}
+
 function generateDefaultLayout(){
     let layout : any[] = [];
 
     let uuid = createUUID();
-    let settings = {"title": "Incoming Damage", "periodSeconds": 15, "eventType": "IncomingDamageEvent"};
+    let settings = {"title": "Incoming Damage", "periodSeconds": 15, "eventTypes": ['IncomingDamageEvent']};
     localStorage.setItem("widget_settings_" + uuid, JSON.stringify(settings));
     layout.push({"x":0,"y":0,"w":3,"h":1,"i":`${TOTAL_OVER_TIME_WIDGET_ID}_${uuid}`});
 
     let uuid2 = createUUID();
-    let settings2 = {"title": "Outgoing Damage", "periodSeconds": 15, "eventType": "OutgoingDamageEvent"};
+    let settings2 = {"title": "Outgoing Damage", "periodSeconds": 15, "eventTypes": ['OutgoingDamageEvent']};
     localStorage.setItem("widget_settings_" + uuid2, JSON.stringify(settings2));
     layout.push({"x":3,"y":0,"w":3,"h":1,"i":`${TOTAL_OVER_TIME_WIDGET_ID}_${uuid2}`});
 
@@ -40,6 +47,7 @@ function generateDefaultLayout(){
     layout.push({"x":9,"y":0,"w":3,"h":3,"i":appendUniqueId(OUTGOING_JAM_WIDGET_ID)});
     layout.push({"x":0,"y":1,"w":3,"h":2,"i":appendUniqueId(OVERVIEW_WIDGET_ID)});
 
+    localStorage.setItem('dash_layout', JSON.stringify(layout));
     return layout;
 }
 
@@ -77,6 +85,10 @@ export const useUserStore = defineStore('user', {
         },
     },
     actions: {
+        resetDashboardLayout(){
+            clearKnownWidgetSettings(this.dash_layout);
+            this.dash_layout = generateDefaultLayout();
+        },
         appendToLayout(newItem){
             this.dash_layout.push(newItem);
             localStorage.setItem('dash_layout', JSON.stringify(this.dash_layout));

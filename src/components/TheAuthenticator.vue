@@ -53,6 +53,7 @@
       </div>
       <ul class="py-1" aria-labelledby="dropdown">
         <li>
+          <a @click="userStore.resetDashboardLayout" class="text-sm hover:bg-gray-200 text-gray-700 block px-4 py-2 cursor-pointer">Reset Dashboard</a>
           <a v-on:click="signOut" class="text-sm hover:bg-gray-200 text-gray-700 block px-4 py-2 cursor-pointer">Sign out</a>
         </li>
       </ul>
