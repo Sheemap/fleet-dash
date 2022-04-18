@@ -28,7 +28,7 @@ const dashboardRef = ref(null);
           <div v-if="userStore.widget_drawer_open" class="w-1/4 fixed right-0 top-0 h-full">
             <TheWidgetDrawer :dashboard-ref="dashboardRef" />
           </div>
-          <div :class="userStore.widget_drawer_open ? 'opacity-100' : 'opacity-0'"
+          <div v-if="userStore.widget_drawer_open"
                class="fixed top-0 right-0 m-4 p-1 rounded-full bg-red-500 cursor-pointer rotate-45 transition ease-in-out hover:scale-110"
                @click="() => userStore.widget_drawer_open = !userStore.widget_drawer_open">
             <img alt="Close Widget Drawer" src="https://img.icons8.com/material-outlined/36/000000/add.png"/>
