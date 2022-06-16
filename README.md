@@ -1,27 +1,21 @@
-# FleetDash Web
+# FleetDash
 
-FleetDash is a distributed log parsing tool for EVE Online that allows you to parse and visualize logs from your entire fleet.
+FleetDash is a realtime combat dashboard for EVE Online. FleetDash can parse the entire fleet's combat logs, and visualize them with customizable widgets.
 
-See live counters of how much damage you've done, who is currently ECM'd, and more.
+---
 
-You can access the tool from https://fleetdash.space, or build and deploy it yourself.
+## fleet-dash-web
 
-## Overview
+This is the actual dashboard, the visualization hub. It opens a websocket to fleet-dash-core, and listens for relevant events. Itll injest em, and update any dashboard widgets that care. Due to the messaging system, it's very easy to build new widgets.
 
-fleet-dash-web is the frontend for FleetDash. It is built with Vue3, and uses EVE ESI and fleet-dash-core as a backend.
+### Technical info
 
-Events are received via websockets, and emitted to all active components based on the event type.
-Components can subscribe to only events they are interested in, and can do whatever they wish with these events.
-This system allows for quick development of new components which only need to worry about their own business.
+fleet-dash-web is built with Vue3 and Vite. Typescript is used for all component logic, and Tailwind for styling.
 
+-- add more :)
 
-## Setup
+This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
 
-fleet-dash-web is a single page app, and is quite simple to setup and deploy.
+## Recommended IDE Setup
 
-For local development, you can use `npm run dev` to build the frontend and run the server locally,
-changes will be automatically reloaded.
-
-For production, you can use `npm run build` to build the frontend.
-This will create a production build in the `dist` directory.
-You will then deploy this to your server as you would a static site.
+- [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.volar)
