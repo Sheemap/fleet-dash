@@ -161,8 +161,13 @@ export const useUserStore = defineStore('user', {
                 fetch('https://login.eveonline.com/v2/oauth/token', options)
                     .then(response => response.json())
                     .then(res => {
-                        this.setToken(res)
-                        resolve(this._token_set);
+                        if (typeof(res.error) !== 'undefined' && res.error === 'invalid_grant'){
+                            this.signOut();
+                            reject(res.error_description);
+                        } else {
+                            this.setToken(res)
+                            resolve(this._token_set);
+                        }
                     })
                     .catch(err => {
                         reject(err);
