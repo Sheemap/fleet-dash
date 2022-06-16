@@ -16,9 +16,9 @@ const dashboardRef = ref(null);
 <template>
   <div class="bg-zinc-900 text-slate-100 pb-96 md:pb-0 h-screen h-full">
 
-      <TheNavBar />
-
-      <TheEventStream />
+      <TheNavBar>
+        <TheEventStream />
+      </TheNavBar>
 
       <div v-if="eventStore.active">
         <div id="content" class="flex gap-7">

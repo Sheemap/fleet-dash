@@ -46,7 +46,7 @@
 
 <template>
   <div v-if="authenticated">
-    <img v-if="authenticated" v-on:click="toggleContextMenu" id="character-portrait" class="my-3 mr-5 rounded-full cursor-pointer h-12 w-12" v-bind:src="portrait_url" alt="Character Portrait"/>
+    <img v-if="authenticated" v-on:click="toggleContextMenu" id="character-portrait" class="rounded-full cursor-pointer transition ease-in-out hover:scale-110" v-bind:src="portrait_url" alt="Character Portrait"/>
     <div v-if="contextMenu" class="bg-white text-black z-50 list-none divide-y divide-gray-100 rounded shadow my-4 fixed right-0 top-14 mx-5">
       <div class="px-4 py-3">
         <span class="block text-sm cursor-default">{{ userStore.character_name }}</span>
