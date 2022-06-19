@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TheCounterConfigForm from "./modalContents/TheCounterConfigForm.vue";
+import TheSliderConfigForm from "./modalContents/TheSliderConfigForm.vue";
 import {TotalCounterConfig, ValidModalConfigs} from "../js/shared";
 
 const props = defineProps<{
@@ -12,6 +13,9 @@ const props = defineProps<{
 let contents;
 if (props.configType == "TotalCounterConfig") {
   contents = TheCounterConfigForm;
+}
+if (props.configType == "SliderMeterConfig") {
+  contents = TheSliderConfigForm;
 }
 </script>
 

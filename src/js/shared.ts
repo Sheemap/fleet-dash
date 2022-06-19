@@ -29,6 +29,22 @@ class TotalCounterConfig {
     }
 }
 
-export type ValidModalConfigs = TotalCounterConfig;
+class SliderMeterConfig {
+    title: string;
+    subtitle: string;
+    periodSeconds: number;
+    leftEvents: string[];
+    rightEvents: string[];
 
-export { addToRunningAvg, removeFromRunningAvg, createUUID, TotalCounterConfig };
+    constructor(title: string, subtitle: string, periodSeconds: number, leftEvents: string[], rightEvents: string[]) {
+        this.title = title;
+        this.subtitle = subtitle;
+        this.periodSeconds = periodSeconds;
+        this.leftEvents = leftEvents;
+        this.rightEvents = rightEvents;
+    }
+}
+
+export type ValidModalConfigs = TotalCounterConfig | SliderMeterConfig;
+
+export { addToRunningAvg, removeFromRunningAvg, createUUID, TotalCounterConfig, SliderMeterConfig };

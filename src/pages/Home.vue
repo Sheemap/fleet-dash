@@ -7,7 +7,7 @@ import {ValidModalConfigs} from "../js/shared";
 import TheDashboard from "../components/TheDashboard.vue";
 import TheWidgetDrawer from "../components/TheWidgetDrawer.vue";
 import {ref} from "vue";
-import TheModal from "../components/TheModal.vue";
+import TheConfigurationModal from "../components/TheConfigurationModal.vue";
 
 const eventStore = useEventStore();
 const userStore = useUserStore();
@@ -59,7 +59,7 @@ function closeModal() {
         </div>
       </div>
 
-      <TheModal v-if="showingModal" :config-type="configType" :config="currentConfig" :update-configuration="configureCallback" :close="closeModal" />
+      <TheConfigurationModal v-if="showingModal" :config-type="configType" :config="currentConfig" :update-configuration="configureCallback" :close="closeModal" />
 
   </div>
 </template>
