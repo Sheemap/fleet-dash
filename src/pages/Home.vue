@@ -38,7 +38,7 @@ function closeModal() {
         <TheEventStream />
       </TheNavBar>
 
-      <div v-if="!eventStore.active">
+      <div v-if="eventStore.active">
         <div id="content" class="flex gap-7">
           <div :class="userStore.widget_drawer_open ? 'w-3/4' : 'w-full'">
             <TheDashboard :update-ref="(el) => dashboardRef = el" :show-configure-modal="showModal" />
