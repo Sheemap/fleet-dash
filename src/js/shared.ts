@@ -17,4 +17,18 @@ function createUUID(){
     });
 }
 
-export { addToRunningAvg, removeFromRunningAvg, createUUID };
+class TotalCounterConfig {
+    title: string;
+    periodSeconds: number;
+    eventTypes: string[];
+
+    constructor(title: string, periodSeconds: number, eventTypes: string[]) {
+        this.title = title;
+        this.periodSeconds = periodSeconds;
+        this.eventTypes = eventTypes;
+    }
+}
+
+export type ValidModalConfigs = TotalCounterConfig;
+
+export { addToRunningAvg, removeFromRunningAvg, createUUID, TotalCounterConfig };

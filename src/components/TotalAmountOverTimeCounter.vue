@@ -4,6 +4,7 @@ import Counter from "../components/Counter.vue"
 import {inject, ref} from 'vue';
 
 const props = defineProps<{
+    title: string;
     eventType: string | string[];
     periodSeconds: number;
 }>();
@@ -33,5 +34,5 @@ if (props.eventType instanceof Array) {
 </script>
 
 <template>
-    <Counter :title="eventType" :count="runningTotal" :subtitle="subtitle" />
+    <Counter :title="title" :count="runningTotal" :subtitle="subtitle" />
 </template>

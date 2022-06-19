@@ -7,6 +7,7 @@ import FleetOverview from "./FleetOverview.vue";
 import TheFleetUpdater from "./TheFleetUpdater.vue";
 
 import {useUserStore} from "../js/userStore";
+import {ValidModalConfigs} from "../js/shared";
 
 import {
   TOTAL_OVER_TIME_WIDGET_ID,
@@ -18,6 +19,7 @@ import {
 
 const props = defineProps<{
   updateRef: any;
+  showConfigureModal: (configType: string, config: ValidModalConfigs, saveConfig: (ValidModalConfigs) => void) => void;
 }>();
 
 const userStore = useUserStore();
@@ -67,7 +69,7 @@ function onLayoutUpdate(layout) {
                :h="item.h"
                :i="item.i"
                :key="item.i">
-      <component :is="renderFromKey(item.i)" :key="item.i" />
+      <component :is="renderFromKey(item.i)" :key="item.i" :show-configure-modal="showConfigureModal" />
     </grid-item>
   </grid-layout>
 

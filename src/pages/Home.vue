@@ -2,15 +2,33 @@
 import TheNavBar from "../components/TheNavBar.vue";
 import TheEventStream from "../components/TheEventStream.vue";
 import { useEventStore } from "../js/eventStore";
-import { useUserStore } from "../js/userStore";
+import {useUserStore} from "../js/userStore";
+import {ValidModalConfigs} from "../js/shared";
 import TheDashboard from "../components/TheDashboard.vue";
 import TheWidgetDrawer from "../components/TheWidgetDrawer.vue";
 import {ref} from "vue";
+import TheModal from "../components/TheModal.vue";
 
 const eventStore = useEventStore();
 const userStore = useUserStore();
 
 const dashboardRef = ref(null);
+
+
+let showingModal = ref(false);
+let configType = ref("");
+let currentConfig = ref({});
+let configureCallback = ref((_) => {});
+function showModal(newConfigType: string, config: ValidModalConfigs, updateCallback: (config: ValidModalConfigs) => void) {
+  configType.value = newConfigType
+  currentConfig.value = config;
+  configureCallback.value = updateCallback;
+  showingModal.value = true;
+}
+
+function closeModal() {
+  showingModal.value = false;
+}
 </script>
 
 <template>
@@ -20,10 +38,10 @@ const dashboardRef = ref(null);
         <TheEventStream />
       </TheNavBar>
 
-      <div v-if="eventStore.active">
+      <div v-if="!eventStore.active">
         <div id="content" class="flex gap-7">
           <div :class="userStore.widget_drawer_open ? 'w-3/4' : 'w-full'">
-            <TheDashboard :update-ref="(el) => dashboardRef = el" />
+            <TheDashboard :update-ref="(el) => dashboardRef = el" :show-configure-modal="showModal" />
           </div>
           <div v-if="userStore.widget_drawer_open" class="w-1/4 fixed right-0 top-0 h-full">
             <TheWidgetDrawer :dashboard-ref="dashboardRef" />
@@ -40,6 +58,8 @@ const dashboardRef = ref(null);
           </div>
         </div>
       </div>
+
+      <TheModal v-if="showingModal" :config-type="configType" :config="currentConfig" :update-configuration="configureCallback" :close="closeModal" />
 
   </div>
 </template>
