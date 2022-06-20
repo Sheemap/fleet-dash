@@ -1,0 +1,121 @@
+﻿@inherits ComponentBase
+@using EventAggregator.Blazor
+@using FleetDashClient.Models
+@using FleetDashClient.Models.Events
+@implements IHandle<FleetDashClient.Models.Events.CharacterStatusChangedEventArgs>
+
+@inject IEventAggregator _eventAggregator
+
+<div class="account-status">
+    <Tooltip Text="@tooltipText">
+        <img src="@statusImage" height="30"/>
+    </Tooltip>
+</div>
+<div class="account-name">@Character.Name</div>
+<div class="account-overview">@overviewName <button @onclick="() => SelectCharacterOverviewHook(Character.Id, OnOverviewUpdate)">Change</button></div>
+<div class="account-remove-btn">
+    @if (_removeConfirming)
+    {
+        <button id="confirm-button" @onclick="@OnConfirmClick">Confirm</button>
+        <button id="cancel-button" @onclick="@OnCancelClick">Cancel</button>
+    }
+    else
+    {
+        <img id="remove-button" src="/images/close-circle.svg" height="30" @onclick="@OnRemoveAccount"/>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public Character Character { get; set; }
+    [Parameter]
+    public CharacterStatus Status { get; set; }
+    [Parameter]
+    public Func<string, Task> DeleteCharacterHook { get; set; }
+    [Parameter]
+    public Func<string, Func<string?, Task>, Task> SelectCharacterOverviewHook { get; set; }
+    [Parameter]
+    public Action RefreshList { get; set; }
+
+    private CharacterStatus _currentStatus;
+    private string statusImage;
+    private string tooltipText;
+    private string overviewName;
+
+    private DateTimeOffset _lastStreamed = DateTimeOffset.MinValue;
+
+    private bool _removeConfirming = false;
+
+    protected override void OnInitialized()
+    {
+        overviewName = GetOverviewDisplayName(Character.OverviewPath);
+        
+        _eventAggregator.Subscribe(this);
+        UpdateStatus(CharacterStatus.Ready);
+    }
+
+    private void UpdateStatus(CharacterStatus status)
+    {
+        switch (status)
+        {
+            case CharacterStatus.Ready:
+                statusImage = "/images/checkmark-circle-outline.svg";
+                tooltipText = "Ready and waiting";
+                _currentStatus = CharacterStatus.Ready;
+                break;
+
+            case CharacterStatus.ActivelyStreaming:
+                statusImage = "/images/play-circle-outline.svg";
+                tooltipText = "Actively streaming";
+                _currentStatus = CharacterStatus.ActivelyStreaming;
+                break;
+
+            case CharacterStatus.Error:
+                statusImage = "/images/alert-circle.svg";
+                tooltipText = "Error has occured! Please log in again.";
+                _currentStatus = CharacterStatus.Error;
+                break;
+        }
+    }
+        
+    public Task HandleAsync(CharacterStatusChangedEventArgs args)
+    {
+        if (args.CharacterId == Character.Id)
+        {
+            UpdateStatus(args.Status);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OnRemoveAccount(MouseEventArgs mouseEventArgs)
+    {
+        _removeConfirming = true;
+    }
+
+    private async Task OnConfirmClick(MouseEventArgs mouseEventArgs)
+    {
+        await DeleteCharacterHook(Character.Id);
+        _removeConfirming = false;
+        RefreshList();
+    }
+
+    private void OnCancelClick(MouseEventArgs mouseEventArgs)
+    {
+        _removeConfirming = false;
+    }
+
+    private static string GetOverviewDisplayName(string? overviewPath)
+    {
+        return overviewPath != null ? Path.GetFileName(overviewPath) : "None Selected";
+    }
+
+    private Task OnOverviewUpdate(string? overviewPath)
+    {
+        overviewName = GetOverviewDisplayName(overviewPath);
+        RefreshList();
+        return Task.CompletedTask;
+    }
+
+}

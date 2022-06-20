@@ -1,0 +1,15 @@
+﻿@using FleetDashClient.ViewModels
+@using EventAggregator.Blazor
+@inherits ComponentBase
+
+@inject LogViewModel _logViewModel
+@inject IEventAggregator _eventAggregator
+
+<p><strong>Log Directory:</strong> @_logViewModel.LogDirectory <button @onclick="_logViewModel.UpdateLogDirectory">Change</button></p>
+
+@code{
+    protected override void OnInitialized()
+    {
+        _eventAggregator.Subscribe(this);
+    }
+}

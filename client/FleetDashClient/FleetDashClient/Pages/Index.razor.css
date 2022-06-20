@@ -1,0 +1,36 @@
+﻿hr {
+    grid-column: 1/7;
+    margin-top: -5px;
+    margin-bottom: -5px;
+}
+
+#eve-login-btn {
+    padding-top: 30px;
+}
+
+#eve-login-btn:hover {
+    cursor: pointer;
+}
+
+#account-list {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+
+.account-status {
+    grid-column: 1;
+}
+
+.account-name {
+    grid-column: 2/4;
+}
+
+.account-overview{
+    grid-column: 4/6;
+}
+
+
+.account-remove-btn {
+    grid-column: 6;
+}

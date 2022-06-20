@@ -1,0 +1,19 @@
+﻿#remove-button:hover {
+    cursor: pointer;
+}
+
+.account-status {
+    grid-column: 1;
+}
+
+.account-name {
+    grid-column: 2/4;
+}
+
+.account-overview{
+    grid-column: 4/6;
+}
+
+.account-remove-btn {
+    grid-column: 6;
+}
