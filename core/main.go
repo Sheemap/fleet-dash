@@ -27,7 +27,7 @@ func main() {
 
 	connectionString, ok := os.LookupEnv("COCKROACH_DB_CONNECTION_STRING")
 	if !ok {
-		level.Error(logger).Log("message", "COCKROACH_DB_CONNECTION_STRING environment variable not set")
+		_ = level.Error(logger).Log("message", "COCKROACH_DB_CONNECTION_STRING environment variable not set")
 		os.Exit(1)
 	}
 
@@ -54,7 +54,7 @@ func main() {
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		logger.Log("during", "Listen", "err", err)
+		_ = logger.Log("during", "Listen", "err", err)
 		os.Exit(1)
 	}
 
@@ -68,16 +68,16 @@ func main() {
 	go func() {
 		baseServer := grpc.NewServer()
 		pb.RegisterFleetDashServiceServer(baseServer, grpcServer)
-		level.Info(logger).Log("transport", "gRPC", "addr", ":8080")
+		_ = level.Info(logger).Log("transport", "gRPC", "addr", ":8080")
 		errs <- baseServer.Serve(grpcListener)
 	}()
 
 	go func() {
-		logger.Log("transport", "HTTP", "addr", ":8080")
+		_ = logger.Log("transport", "HTTP", "addr", ":8080")
 		errs <- http.Serve(httpListener, httpServer)
 	}()
 
 	errs <- m.Serve()
 
-	level.Error(logger).Log("exit", <-errs)
+	_ = level.Error(logger).Log("exit", <-errs)
 }
