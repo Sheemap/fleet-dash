@@ -19,20 +19,19 @@ import (
 	"syscall"
 )
 
-//type server struct{}
-//
-//func (s *server) PostEveLogEventBatch(ctx context.Context, event *protobuf.EveLogEvent) (*protobuf.EveLogEventResponse, error) {
-//	fmt.Println("Received event: ", event)
-//	return &protobuf.EveLogEventResponse{}, nil
-//}
-
 func main() {
 	var logger log.Logger
 	logger = log.NewJSONLogger(os.Stdout)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
-	repository := data.NewRepository()
+	connectionString, ok := os.LookupEnv("COCKROACH_DB_CONNECTION_STRING")
+	if !ok {
+		level.Error(logger).Log("message", "COCKROACH_DB_CONNECTION_STRING environment variable not set")
+		os.Exit(1)
+	}
+
+	repository := data.NewRepository(connectionString)
 
 	eventIngestionService := service.NewEventIngestionService(repository)
 	eventStreamService := service.NewEventStreamService(repository, logger)

@@ -31,15 +31,15 @@ type Repository interface {
 	GetStaticSolarSystemInfo(id uint64) (*StaticSolarSystemInfo, error)
 }
 
-func NewRepository() Repository {
-	db := initGorm()
+func NewRepository(connectionString string) Repository {
+	db := initGorm(connectionString)
 	return &repository{
 		db: db,
 	}
 }
 
-func initGorm() *gorm.DB {
-	db, err := gorm.Open(postgres.Open("postgresql://jamis:JFc8yI2euSGTRtNY2Vracw@free-tier4.aws-us-west-2.cockroachlabs.cloud:26257/fleet-dash-2252.defaultdb"), &gorm.Config{})
+func initGorm(connectionString string) *gorm.DB {
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}

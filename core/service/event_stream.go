@@ -126,6 +126,8 @@ var LastSessionClear = time.Now().Add(-SessionClearInterval)
 var MapClearInterval = time.Minute * 5
 var LastMapClear = time.Now()
 
+// TODO: We should avoid polling the DB like this, it would be much more performant to
+//       use something like RabbitMQ (More complicated and work to maintain though)
 func (e *eventStreamService) startDBPoll() {
 	for {
 		events, err := e.repo.GetEvents(time.Now().Add(-time.Second * 3))
