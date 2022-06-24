@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using EveLogParser;
+using EveLogParser.Models.Events;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 using Moq;

@@ -149,7 +149,7 @@ public class LogParserService : ILogParserService, IDisposable
         }
         foreach (Group matchGroup in match.Groups)
         {
-            allMatches.TryAdd(matchGroup.Name, match.Value);
+            allMatches.TryAdd(matchGroup.Name, matchGroup.Value);
         }
 
         ConstructAndRaiseEvent(allMatches, watchedCharacter.CharacterId, argsFactory, eventHandler);

@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using EveLogParser;
 using FleetDashClient.Services;
 using Moq;
 using Xunit;

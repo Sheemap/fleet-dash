@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using EveLogParser;
+using EveLogParser.Models.Events;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 using Moq;
@@ -12,21 +14,18 @@ namespace FleetDashClient.Test.LogParserServiceTests;
 public class OutgoingShieldTests
 {
     private const string SingleShieldOutgoingLineWithOverview =
-        "[ 2022.01.17 20:28:44 ] (combat) <color=0xffccff66><b>416</b><color=0x77ffffff><font size=10> remote shield boosted to </font><b><color=0xffffffff><fontsize=12><color=0xFFFEBB64><b> <u>Hurricane</u></b></color></fontsize><fontsize=12><color=0xFFFEFF6F> [ALLIANCE_TAG]</color></fontsize> <fontsize=10><b>[CORP_TAG]</b></fontsize><fontsize=10> [Anonymous Eve Player]</fontsize><color=0xFFFFFFFF><b> -</b><color=0x77ffffff><font size=10> - Medium Remote Armor Repairer II</font>";
+        "[ 2022.01.17 20:28:44 ] (combat) <color=0xffccff66><b>416</b><color=0x77ffffff><font size=10> remote shield boosted to </font><b><color=0xffffffff><fontsize=12><color=0xFFFEBB64><b> <u>Hurricane</u></b></color></fontsize><fontsize=12><color=0xFFFEFF6F> [ALLIANCETAG]</color></fontsize> <fontsize=10><b>[CORPTAG]</b></fontsize><fontsize=10> [Anonymous Eve Player]</fontsize><color=0xFFFFFFFF><b> -</b><color=0x77ffffff><font size=10> - Medium Remote Armor Repairer II</font>";
 
     private readonly ILogParserService _logParserService;
     private readonly Mock<ILogReaderService> _logReaderMock;
 
-    private readonly string _overviewSettings;
+    private const string OverviewPath = @"TestData\ValidOverview.yaml";
 
     public OutgoingShieldTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
-
-        using var streamReader = new StreamReader(@"TestData\ValidOverview.yaml");
-        _overviewSettings = streamReader.ReadToEnd();
     }
     
     [Fact]
@@ -35,7 +34,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -65,7 +64,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -80,7 +79,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -95,7 +94,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -110,7 +109,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -125,7 +124,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -140,7 +139,7 @@ public class OutgoingShieldTests
         var emittedEvents = new List<OutgoingShieldEvent>();
 
         _logParserService.OnOutgoingShield += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,

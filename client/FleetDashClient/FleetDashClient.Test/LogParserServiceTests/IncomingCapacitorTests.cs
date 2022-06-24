@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using EveLogParser;
+using EveLogParser.Models.Events;
 using FleetDashClient.Models.Events;
 using FleetDashClient.Services;
 using Moq;
@@ -17,16 +19,13 @@ public class IncomingCapacitorTests
     private readonly ILogParserService _logParserService;
     private readonly Mock<ILogReaderService> _logReaderMock;
 
-    private readonly string _overviewSettings;
+    private const string OverviewPath = @"TestData\ValidOverview.yaml";
 
     public IncomingCapacitorTests()
     {
         _logReaderMock = new Mock<ILogReaderService>();
 
         _logParserService = new LogParserService(_logReaderMock.Object);
-
-        using var streamReader = new StreamReader(@"TestData\ValidOverview.yaml");
-        _overviewSettings = streamReader.ReadToEnd();
     }
     
     [Fact]
@@ -35,7 +34,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -65,7 +64,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -80,7 +79,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -95,7 +94,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -110,7 +109,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -125,7 +124,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
@@ -140,7 +139,7 @@ public class IncomingCapacitorTests
         var emittedEvents = new List<IncomingCapacitorEvent>();
 
         _logParserService.OnIncomingCapacitor += (_, e) => emittedEvents.Add(e);
-        _logParserService.StartWatchingCharacter("123", _overviewSettings);
+        _logParserService.StartWatchingCharacter("123", OverviewPath);
 
         // Emit the event
         _logReaderMock.Raise(x => x.OnFileRead += null,
