@@ -6,6 +6,7 @@ import {
     OVERVIEW_WIDGET_ID
 } from './constants'
 import {createUUID} from "./shared";
+import pkceChallenge from 'pkce-challenge';
 
 export type TokenSet = {
     access_token: string;
@@ -18,6 +19,12 @@ type ApiTokenSet = {
     refresh_token: string;
     expires_in: number;
 };
+
+type AuthState = {
+    state: string;
+    code_verifier: string;
+    code_challenge: string;
+}
 
 function appendUniqueId(widget: string): string {
     return widget + "_" + createUUID();
@@ -59,7 +66,7 @@ export const useUserStore = defineStore('user', {
         }
         
         return {
-            auth_state: localStorage.getItem('auth_state') || '',
+            auth_state: JSON.parse(localStorage.getItem('auth_state') || '{}') || {},
             widget_drawer_open: false,
             dash_layout: dashLayout,
             _portrait_url: localStorage.getItem('portrait_url') || '',
@@ -103,13 +110,21 @@ export const useUserStore = defineStore('user', {
             localStorage.removeItem('token_set')
             this.resetState()
         },
-        setState(){
-            this.auth_state = Math.random().toString(16).substr(2, 32);
-            localStorage.setItem('auth_state', this.auth_state);
+        setState() : AuthState{
+            let authString = Math.random().toString(16).substr(2, 32);
+
+            let pkceInfo = pkceChallenge();
+            this.auth_state = {
+                state: authString,
+                code_verifier: pkceInfo.code_verifier,
+                code_challenge: pkceInfo.code_challenge
+            }
+
+            localStorage.setItem('auth_state', JSON.stringify(this.auth_state));
             return this.auth_state;
         },
         resetState(){
-            this.auth_state = '';
+            this.auth_state = {};
             localStorage.removeItem('auth_state');
         },
         setToken(tokenSet : ApiTokenSet){
@@ -149,7 +164,6 @@ export const useUserStore = defineStore('user', {
 
                 const params = new URLSearchParams();
                 params.append('client_id', import.meta.env.VITE_EVE_CLIENT_ID);
-                params.append('client_secret', import.meta.env.VITE_EVE_CLIENT_SECRET);
                 params.append('grant_type', 'refresh_token');
                 params.append('redirect_uri', import.meta.env.VITE_EVE_REDIRECT_URI);
                 params.append('refresh_token', this._token_set.refresh_token);

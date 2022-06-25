@@ -11,16 +11,17 @@
     "mitt": "^3.0.0",
     "numeral": "^2.0.6",
     "pinia": "^2.0.11",
+    "pkce-challenge": "^3.0.0",
     "vue": "^3.2.25",
     "vue-grid-layout": "^3.0.0-beta1",
     "vue-toast-notification": "3.0"
   },
   "devDependencies": {
-    "mini-svg-data-uri": "^1.4.4",
     "@tailwindcss/forms": "^0.5.0",
     "@types/numeral": "^2.0.2",
     "@vitejs/plugin-vue": "^2.1.0",
     "autoprefixer": "^10.4.2",
+    "mini-svg-data-uri": "^1.4.4",
     "postcss": "^8.4.5",
     "tailwindcss": "^3.0.18",
     "vite": "^2.8.3",
