@@ -6,6 +6,8 @@ A *real-time* dashboard for your Eve Online fleets.
 
 ### Overview
 
+*Note: FleetDash is still early alpha. While everything seems to work well, extremely minimal live testing has been done*
+
 FleetDash works by parsing player's combat logs and sending to the core server. 
 This server then sends those events to authorized fleet members logged into the website, where they can be visualized in a fun lil dashboard.
 
